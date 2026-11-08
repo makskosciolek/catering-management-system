@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+*.log
+media/
+staticfiles/
+db.sqlite3
+
+# Zmienne środowiskowe (hasła, klucze)
+.env
+.env.local
+
+# Node / React
+node_modules/
+dist/
+build/
+npm-debug.log*
+
+# IDE i system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
