@@ -4,16 +4,14 @@ Projekt realizowany w ramach przedmiotu **Inżynieria Oprogramowania 2026/2027**
 
 Temat: **Tworzenie oprogramowania dla firmy kateringowej**
 
-## Zespół
-
-- Imię Nazwisko
-- Imię Nazwisko
-
 ## Opis
 
 CateringHub to aplikacja webowa wspierająca pracę firmy kateringowej: od przyjęcia
 zamówienia od klienta, przez planowanie produkcji w kuchni i organizację dostaw,
 aż po analizę statystyk i prognozowanie zapotrzebowania na zasoby.
+
+Produkt jest projektowany jako platforma w modelu **SaaS**, z której mogą korzystać
+różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 
 ### Funkcje główne realizowane w oprogramowaniu
 
@@ -36,6 +34,7 @@ aż po analizę statystyk i prognozowanie zapotrzebowania na zasoby.
 - **Backend:** Python, Django, Django REST Framework
 - **Frontend:** React (JavaScript)
 - **Baza danych:** PostgreSQL
+- **Kolejka komunikatów i zdarzenia:** RabbitMQ, Celery
 - **Konteneryzacja:** Docker, Docker Compose
 - **Kontrola wersji:** Git, GitHub
 
@@ -46,7 +45,7 @@ cateringhub/
 ├── backend/        # API (Django + DRF)
 ├── frontend/       # aplikacja kliencka i panel pracowników (React)
 └── docs/
-    ├── raport/     # kolejne wersje raportu z projektu
+    ├── raport/     # kolejne rozdziały i wersje raportu z projektu
     └── diagramy/   # diagramy UML, ERD, architektury
 ```
 
@@ -62,13 +61,11 @@ cateringhub/
 ## Postęp prac
 
 - [x] Utworzenie repozytorium i struktury projektu
-- [ ] Analiza biznesowa i specyfikacja wymagań
-- [ ] Projekt architektury systemu
+- [x] Analiza biznesowa: cel, problem, założenia, zakres produktu (rozdziały 1–4)
+- [ ] Specyfikacja wymagań oprogramowania (rozdział 5)
+- [ ] Projekt architektury systemu (rozdział 6)
+- [ ] Wybór technologii i narzędzi (rozdział 7)
 - [ ] Implementacja backendu
 - [ ] Implementacja frontendu
 - [ ] Testy
 - [ ] Wdrożenie
-
-## Uruchomienie
-
-Instrukcja uruchomienia zostanie dodana wraz z pierwszą wersją backendu.
