@@ -18,12 +18,21 @@ db.sqlite3
 # Zmienne środowiskowe (hasła, klucze)
 .env
 .env.local
+.env.*
+!.env.example
+!.env.*.example
 
 # Node / React
 node_modules/
 dist/
 build/
 npm-debug.log*
+playwright-report/
+test-results/
+*.tsbuildinfo
+.ruff_cache/
+.cache/
+.artifacts/
 
 # IDE i system
 .vscode/

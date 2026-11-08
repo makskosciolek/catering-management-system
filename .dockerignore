@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+AGENTS.md
+.ai
+.cache
+.artifacts
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/dist
+**/test-results
+**/playwright-report
