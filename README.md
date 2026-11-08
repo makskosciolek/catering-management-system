@@ -4,11 +4,6 @@ Projekt realizowany w ramach przedmiotu **Inżynieria Oprogramowania 2026/2027**
 
 Temat: **Tworzenie oprogramowania dla firmy kateringowej**
 
-## Zespół
-
-- Imię Nazwisko
-- Imię Nazwisko
-
 ## Opis
 
 CateringHub to aplikacja webowa wspierająca pracę firmy kateringowej: od przyjęcia
