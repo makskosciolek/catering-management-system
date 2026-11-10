@@ -77,6 +77,7 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_FAILURE_VIEW = "cateringhub_orders.accounts.views.csrf_failure"
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE
 SESSION_COOKIE_HTTPONLY = True
 JWT_COOKIE_NAME = "cateringhub_access"

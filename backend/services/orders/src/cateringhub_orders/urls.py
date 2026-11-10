@@ -1,4 +1,16 @@
 from django.contrib import admin
 from django.urls import path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-urlpatterns = [path("api/orders/admin/", admin.site.urls)]
+from .accounts.views import CsrfView, LoginView, LogoutView, ProfileView, RegisterView
+
+urlpatterns = [
+    path("api/orders/admin/", admin.site.urls),
+    path("api/orders/v1/auth/csrf/", CsrfView.as_view()),
+    path("api/orders/v1/auth/register/", RegisterView.as_view()),
+    path("api/orders/v1/auth/login/", LoginView.as_view()),
+    path("api/orders/v1/auth/logout/", LogoutView.as_view()),
+    path("api/orders/v1/auth/me/", ProfileView.as_view()),
+    path("api/orders/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/orders/v1/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
+]
