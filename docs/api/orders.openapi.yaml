@@ -1,0 +1,626 @@
+openapi: 3.0.3
+info:
+  title: 'CateringHub: zamówienia'
+  version: 0.1.0
+  description: API pilotażu SmakBox. Konta, menu i zamówienia na dania i porcje.
+paths:
+  /api/orders/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CsrfResponse'
+          description: ''
+  /api/orders/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/orders/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/orders/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/orders/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/orders/v1/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/orders/v1/menu/:
+    get:
+      operationId: menu_list
+      parameters:
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - menu
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meal'
+          description: ''
+  /api/orders/v1/menu/{id}/:
+    get:
+      operationId: menu_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this meal.
+        required: true
+      tags:
+      - menu
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+          description: ''
+  /api/orders/v1/orders/:
+    get:
+      operationId: orders_list
+      parameters:
+      - in: query
+        name: delivery_date
+        schema:
+          type: string
+          format: date
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderList'
+          description: ''
+    post:
+      operationId: orders_create
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateOrder'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/orders/v1/orders/{id}/:
+    get:
+      operationId: orders_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/orders/v1/orders/summary/:
+    get:
+      operationId: orders_summary_retrieve
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderSummary'
+          description: ''
+components:
+  schemas:
+    CategoryEnum:
+      enum:
+      - main
+      - soup
+      - salad
+      type: string
+      description: |-
+        * `main` - Danie główne
+        * `soup` - Zupa
+        * `salad` - Sałatka
+    CreateOrder:
+      type: object
+      properties:
+        delivery_date:
+          type: string
+          format: date
+          title: Data dostawy
+        delivery_address:
+          type: string
+          title: Adres dostawy
+          maxLength: 300
+        contact_phone:
+          type: string
+          title: Telefon kontaktowy
+          maxLength: 30
+        note:
+          type: string
+          title: Uwagi
+          maxLength: 500
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLineInput'
+      required:
+      - contact_phone
+      - delivery_address
+      - delivery_date
+      - items
+    CsrfResponse:
+      type: object
+      properties:
+        csrfToken:
+          type: string
+      required:
+      - csrfToken
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+      required:
+      - service
+      - status
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    Meal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+          title: Nazwa
+        description:
+          type: string
+          readOnly: true
+          title: Opis
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+          title: Cena
+        category:
+          allOf:
+          - $ref: '#/components/schemas/CategoryEnum'
+          readOnly: true
+        allergens:
+          type: string
+          readOnly: true
+          title: Alergeny
+        is_vegetarian:
+          type: boolean
+          readOnly: true
+          title: Wegetariańskie
+      required:
+      - allergens
+      - category
+      - description
+      - id
+      - is_vegetarian
+      - name
+      - price
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        customer_name:
+          type: string
+          readOnly: true
+        customer_email:
+          type: string
+          format: email
+          readOnly: true
+        delivery_date:
+          type: string
+          format: date
+          readOnly: true
+          title: Data dostawy
+        delivery_address:
+          type: string
+          readOnly: true
+          title: Adres dostawy
+        contact_phone:
+          type: string
+          readOnly: true
+          title: Telefon kontaktowy
+        note:
+          type: string
+          readOnly: true
+          title: Uwagi
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,14}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+      required:
+      - contact_phone
+      - created_at
+      - customer_email
+      - customer_name
+      - delivery_address
+      - delivery_date
+      - id
+      - items
+      - note
+      - status
+      - total
+    OrderItem:
+      type: object
+      properties:
+        meal_id:
+          type: string
+          format: uuid
+          readOnly: true
+        meal_name:
+          type: string
+          readOnly: true
+        unit_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+          readOnly: true
+        quantity:
+          type: integer
+          readOnly: true
+      required:
+      - meal_id
+      - meal_name
+      - quantity
+      - unit_price
+    OrderLineInput:
+      type: object
+      properties:
+        meal_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          maximum: 1000
+          minimum: 1
+      required:
+      - meal_id
+      - quantity
+    OrderSummary:
+      type: object
+      properties:
+        orders:
+          type: integer
+        portions:
+          type: integer
+      required:
+      - orders
+      - portions
+    PaginatedOrderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+    PatchedUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: E-mail
+        first_name:
+          type: string
+          title: Imię
+          maxLength: 150
+        last_name:
+          type: string
+          title: Nazwisko
+          maxLength: 150
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 30
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+    Register:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          title: Imię
+          maxLength: 150
+        last_name:
+          type: string
+          title: Nazwisko
+          maxLength: 150
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 30
+      required:
+      - email
+      - first_name
+      - last_name
+      - password
+    RoleEnum:
+      enum:
+      - customer
+      - warehouse
+      - kitchen
+      - driver
+      - manager
+      - admin
+      type: string
+      description: |-
+        * `customer` - Klient
+        * `warehouse` - Magazynier
+        * `kitchen` - Pracownik kuchni
+        * `driver` - Kierowca
+        * `manager` - Menedżer
+        * `admin` - Administrator
+    StatusEnum:
+      enum:
+      - submitted
+      type: string
+      description: '* `submitted` - Oczekuje na magazyn'
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+          title: E-mail
+        first_name:
+          type: string
+          title: Imię
+          maxLength: 150
+        last_name:
+          type: string
+          title: Nazwisko
+          maxLength: 150
+        phone:
+          type: string
+          title: Telefon
+          maxLength: 30
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+      required:
+      - email
+      - id
+      - role
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: cateringhub_access

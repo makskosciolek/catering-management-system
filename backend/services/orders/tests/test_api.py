@@ -1,8 +1,34 @@
+from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import Mock
+
+import pika
 import pytest
+from cateringhub_orders.sales.models import Meal, Order, OutboxEvent
+from cateringhub_orders.sales.publisher import publish_one
 from conftest import BASE, PASSWORD, csrf, login
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def meal():
+    return Meal.objects.create(name="Zupa", price="17.50", category=Meal.Category.SOUP)
+
+
+def order_data(meal):
+    return {
+        "delivery_date": (timezone.localdate() + timedelta(days=1)).isoformat(),
+        "delivery_address": "Przykładowa 1, Kraków",
+        "contact_phone": "000 000 000",
+        "items": [{"meal_id": str(meal.id), "quantity": 2}],
+    }
+
+
+def submit(client, data):
+    return client.post(f"{BASE}/orders/", data, format="json", HTTP_X_CSRFTOKEN=csrf(client))
 
 
 def test_registration_rejects_missing_csrf_and_ignores_role_escalation(api):
@@ -36,3 +62,67 @@ def test_login_cookie_and_logout(api, customer):
     assert api.post(f"{BASE}/auth/logout/").status_code == 403
     assert api.post(f"{BASE}/auth/logout/", HTTP_X_CSRFTOKEN=csrf(api)).status_code == 204
     assert api.get(f"{BASE}/auth/me/").status_code == 401
+
+
+def test_order_uses_server_price_and_writes_outbox(api, customer, meal):
+    login(api, customer)
+    data = {**order_data(meal), "total": "0.01", "status": "delivered"}
+    assert api.post(f"{BASE}/orders/", data, format="json").status_code == 403
+    result = submit(api, data)
+    assert result.status_code == 201
+    order = Order.objects.get(pk=result.json()["id"])
+    assert order.total == Decimal("35.00")
+    assert order.status == "submitted"
+    assert order.customer_id == customer.id
+    event = OutboxEvent.objects.get(order=order)
+    assert event.event_type == "order.submitted"
+    assert event.payload == {
+        "delivery_date": data["delivery_date"],
+        "items": [{"meal_id": str(meal.id), "quantity": 2}],
+    }
+    assert event.published_at is None
+
+
+@pytest.mark.parametrize("invalid", ["quantity", "date", "inactive"])
+def test_invalid_order_does_not_write_anything(api, customer, meal, invalid):
+    login(api, customer)
+    data = order_data(meal)
+    if invalid == "quantity":
+        data["items"][0]["quantity"] = 0
+    elif invalid == "date":
+        data["delivery_date"] = (timezone.localdate() - timedelta(days=1)).isoformat()
+    else:
+        meal.is_active = False
+        meal.save(update_fields=("is_active",))
+    assert submit(api, data).status_code == 400
+    assert not Order.objects.exists()
+    assert not OutboxEvent.objects.exists()
+
+
+def test_order_visibility_for_customer_and_manager(api, customer, meal):
+    login(api, customer)
+    order_id = submit(api, order_data(meal)).json()["id"]
+    user_model = get_user_model()
+    other = user_model.objects.create_user("other@example.com", PASSWORD)
+    manager = user_model.objects.create_user("manager@example.com", PASSWORD, role="manager")
+    login(api, other)
+    assert api.get(f"{BASE}/orders/").json()["count"] == 0
+    assert api.get(f"{BASE}/orders/{order_id}/").status_code == 404
+    login(api, manager)
+    assert api.get(f"{BASE}/orders/{order_id}/").status_code == 200
+    assert api.get(f"{BASE}/orders/summary/").json() == {"orders": 1, "portions": 2}
+    assert submit(api, order_data(meal)).status_code == 403
+
+
+def test_publish_failure_preserves_pending_event(api, customer, meal):
+    login(api, customer)
+    assert submit(api, order_data(meal)).status_code == 201
+    channel = Mock()
+    channel.basic_publish.side_effect = pika.exceptions.UnroutableError([])
+    with pytest.raises(pika.exceptions.UnroutableError):
+        publish_one(channel)
+    assert OutboxEvent.objects.get().published_at is None
+    channel.basic_publish.side_effect = None
+    assert publish_one(channel) is True
+    assert OutboxEvent.objects.get().published_at is not None
+    assert publish_one(channel) is False
