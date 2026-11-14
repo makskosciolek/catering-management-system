@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Link,
   Navigate,
@@ -13,11 +13,12 @@ import {
 import { api } from './api/client'
 import { isManagement, sessionKey, useSession } from './session'
 import { AuthPage, ProfilePage } from './auth-pages'
-import { MenuPage } from './menu-page'
+import { MenuPage, type Basket } from './menu-page'
+import { OrderDetailPage } from './orders-pages'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
 
-function Layout() {
+function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () => void }) {
   const session = useSession()
   const user = session.data
   const staff = isManagement(user)
@@ -29,6 +30,7 @@ function Layout() {
     onSuccess: () => {
       queryClient.clear()
       queryClient.setQueryData(sessionKey, null)
+      clearBasket()
       void navigate('/login')
     },
   })
@@ -80,6 +82,17 @@ function Layout() {
               <strong>{currentPage}</strong>
             </div>
             <div className={styles.topActions}>
+              {!staff && (
+                <Link
+                  className={styles.basketLink}
+                  to="/menu#basket"
+                  aria-label={'Koszyk, porcji: ' + quantity}
+                >
+                  <Icon name="bag" size={18} />
+                  <span>Koszyk</span>
+                  <b>{quantity}</b>
+                </Link>
+              )}
               {user ? (
                 <div className={styles.accountActions}>
                   <span className={styles.avatar} aria-hidden="true">
@@ -125,13 +138,44 @@ function Protected({ children }: { children: ReactNode }) {
 }
 
 export function App() {
+  const [basket, setBasket] = useState<Basket>({})
+  function changeQuantity(id: string, delta: number) {
+    setBasket((previous) => {
+      const next = { ...previous }
+      const quantity = Math.min(1000, (previous[id] ?? 0) + delta)
+      if (quantity > 0) next[id] = quantity
+      else delete next[id]
+      return next
+    })
+  }
+  const clearBasket = () => setBasket({})
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route
+        element={
+          <Layout
+            quantity={Object.values(basket).reduce((a, b) => a + b, 0)}
+            clearBasket={clearBasket}
+          />
+        }
+      >
         <Route index element={<Navigate to="/menu" replace />} />
-        <Route path="/menu" element={<MenuPage />} />
+        <Route
+          path="/menu"
+          element={
+            <MenuPage basket={basket} changeQuantity={changeQuantity} clearBasket={clearBasket} />
+          }
+        />
         <Route path="/login" element={<AuthPage key="login" mode="login" />} />
         <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+        <Route
+          path="/orders/:id"
+          element={
+            <Protected>
+              <OrderDetailPage />
+            </Protected>
+          }
+        />
         <Route
           path="/profile"
           element={

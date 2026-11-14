@@ -1,10 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { api, type Meal } from './api/client'
-import { money } from './format'
+import { money, today } from './format'
+import { useSession } from './session'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
 
+export type Basket = Record<string, number>
+type CartProps = {
+  basket: Basket
+  changeQuantity: (id: string, delta: number) => void
+  clearBasket: () => void
+}
 const categories: Record<Meal['category'], string> = {
   main: 'Dania główne',
   soup: 'Zupy',
@@ -41,8 +49,13 @@ function PlateArt() {
   )
 }
 
-export function MenuPage() {
+export function MenuPage(props: CartProps) {
+  const location = useLocation()
+  useEffect(() => {
+    if (location.hash === '#basket') document.getElementById('basket')?.scrollIntoView()
+  }, [location.hash, location.key])
   const menu = useQuery({ queryKey: ['menu'], queryFn: api.menu })
+  const session = useSession()
   const [category, setCategory] = useState<Meal['category'] | 'all'>('all')
   const [search, setSearch] = useState('')
   const meals = menu.data ?? []
@@ -53,6 +66,7 @@ export function MenuPage() {
         .toLocaleLowerCase('pl')
         .includes(search.trim().toLocaleLowerCase('pl')),
   )
+  const canAdd = !session.data || session.data.role === 'customer'
   return (
     <>
       <section className={styles.hero}>
@@ -62,11 +76,11 @@ export function MenuPage() {
             KUCHNIA SMAKBOX
           </span>
           <h1>Menu SmakBox</h1>
-          <p>Sprawdź dostępne dania, ceny i alergeny.</p>
+          <p>Wybierz dania i liczbę porcji. Termin oraz adres podasz przy składaniu zamówienia.</p>
         </div>
         <PlateArt />
       </section>
-      <div className={styles.section}>
+      <div className={styles.menuLayout}>
         <section aria-labelledby="meal-list-heading">
           <div className={styles.sectionHeader}>
             <div>
@@ -118,7 +132,12 @@ export function MenuPage() {
             (shown.length > 0 ? (
               <div className={styles.mealGrid}>
                 {shown.map((meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <MealCard
+                    key={meal.id}
+                    meal={meal}
+                    quantity={props.basket[meal.id] ?? 0}
+                    onAdd={canAdd ? () => props.changeQuantity(meal.id, 1) : undefined}
+                  />
                 ))}
               </div>
             ) : (
@@ -129,12 +148,13 @@ export function MenuPage() {
               </div>
             ))}
         </section>
+        <Cart meals={meals} {...props} />
       </div>
     </>
   )
 }
 
-function MealCard({ meal }: { meal: Meal }) {
+function MealCard({ meal, quantity, onAdd }: { meal: Meal; quantity: number; onAdd?: () => void }) {
   return (
     <article className={styles.mealCard}>
       <div className={styles.mealAccent} data-category={meal.category}>
@@ -150,8 +170,158 @@ function MealCard({ meal }: { meal: Meal }) {
         {meal.allergens && <small>Alergeny: {meal.allergens}</small>}
         <div className={styles.mealBottom}>
           <strong>{money(meal.price)}</strong>
+          {onAdd && (
+            <button
+              type="button"
+              className={styles.addButton}
+              aria-label={'Dodaj ' + meal.name}
+              onClick={onAdd}
+              disabled={quantity >= 1000}
+            >
+              <Icon name="plus" size={16} />
+              {quantity ? 'Dodaj (' + quantity + ')' : 'Dodaj'}
+            </button>
+          )}
         </div>
       </div>
     </article>
+  )
+}
+
+function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meals: Meal[] }) {
+  const session = useSession()
+  const user = session.data
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const selected = meals.filter((meal) => basket[meal.id] > 0)
+  const quantity = selected.reduce((total, meal) => total + basket[meal.id], 0)
+  const estimate =
+    selected.reduce(
+      (total, meal) => total + Math.round(Number(meal.price) * 100) * basket[meal.id],
+      0,
+    ) / 100
+  const mutation = useMutation({
+    mutationFn: api.submitOrder,
+    onSuccess: (order) => {
+      clearBasket()
+      queryClient.setQueryData(['orders', 'detail', order.id], order)
+      void queryClient.invalidateQueries({ queryKey: ['orders'] })
+      void navigate('/orders/' + order.id, { state: { placed: true } })
+    },
+  })
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    mutation.mutate({
+      delivery_date: String(data.get('date')),
+      delivery_address: String(data.get('address')),
+      contact_phone: String(data.get('phone')),
+      note: String(data.get('note')),
+      items: selected.map((meal) => ({ meal_id: meal.id, quantity: basket[meal.id] })),
+    })
+  }
+  return (
+    <aside id="basket" aria-labelledby="basket-heading" className={styles.cart}>
+      <div className={styles.cartHeader}>
+        <span className={styles.cartIcon}>
+          <Icon name="bag" />
+        </span>
+        <div>
+          <h2 id="basket-heading">Twój koszyk</h2>
+          <p>Liczba porcji: {quantity}</p>
+        </div>
+      </div>
+      {selected.length === 0 ? (
+        <div className={styles.cartEmpty}>
+          <Icon name="bag" size={26} />
+          <strong>Koszyk jest pusty</strong>
+          <p>Dodaj danie z menu, żeby rozpocząć zamówienie.</p>
+        </div>
+      ) : (
+        <>
+          <ul className={styles.cartList}>
+            {selected.map((meal) => (
+              <li key={meal.id}>
+                <div>
+                  <strong>{meal.name}</strong>
+                  <small>{money(meal.price)} / porcja</small>
+                </div>
+                <div className={styles.stepper}>
+                  <button
+                    type="button"
+                    onClick={() => changeQuantity(meal.id, -1)}
+                    aria-label={'Odejmij porcję: ' + meal.name}
+                  >
+                    <Icon name="minus" size={14} />
+                  </button>
+                  <span>{basket[meal.id]}</span>
+                  <button
+                    type="button"
+                    onClick={() => changeQuantity(meal.id, 1)}
+                    aria-label={'Dodaj porcję: ' + meal.name}
+                    disabled={basket[meal.id] >= 1000}
+                  >
+                    <Icon name="plus" size={14} />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className={styles.cartTotal}>
+            <span>Razem</span>
+            <strong>{money(estimate)}</strong>
+          </div>
+          {user?.role === 'customer' ? (
+            <form className={styles.cartForm} onSubmit={submit}>
+              <h3>Dane dostawy</h3>
+              <label>
+                Termin dostawy
+                <input name="date" type="date" min={today()} required />
+              </label>
+              <label>
+                Adres dostawy
+                <input
+                  name="address"
+                  placeholder="Ulica, numer, miasto"
+                  maxLength={300}
+                  autoComplete="street-address"
+                  required
+                />
+              </label>
+              <label>
+                Telefon kontaktowy
+                <input
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  defaultValue={user.phone}
+                  maxLength={30}
+                  required
+                />
+              </label>
+              <label>
+                Uwagi <span className={styles.optional}>(opcjonalnie)</span>
+                <textarea name="note" rows={2} maxLength={500} />
+              </label>
+              {mutation.error && <ErrorBox error={mutation.error} />}
+              <button className={styles.primaryButton} disabled={mutation.isPending}>
+                {mutation.isPending ? 'Zapisywanie…' : 'Złóż zamówienie'}{' '}
+                <Icon name="arrow" size={17} />
+              </button>
+            </form>
+          ) : (
+            <div className={styles.cartForm}>
+              {user ? (
+                <p className={styles.muted}>Zamówienia są składane z konta klienta.</p>
+              ) : (
+                <Link className={styles.primaryButton} to="/login">
+                  Zaloguj się, by zamówić
+                </Link>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </aside>
   )
 }
