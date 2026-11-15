@@ -504,7 +504,8 @@
   font-size: 0.75rem;
   margin-top: 4px;
 }
-.cartIcon {
+.cartIcon,
+.metricIcon {
   display: grid;
   place-items: center;
   width: 39px;
@@ -800,18 +801,88 @@
 .section > h1 + p {
   margin-top: 8px;
 }
+.summaryError {
+  margin-bottom: 15px;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 200px));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.metrics > div {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px;
+}
+.metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.metrics strong {
+  display: block;
+  font-size: 1.35rem;
+}
+.orderPanel,
 .detailCard {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
+.orderFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  padding: 14px;
+  gap: 10px;
+}
 .orderFilters .searchField {
   min-height: 41px;
+}
+.orderFilters label:first-child {
+  flex: 1 1 220px;
+  max-width: 400px;
 }
 .orderPanel > .error,
 .orderPanel > .loading {
   margin: 0 14px 14px;
+}
+.orderTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.82rem;
+}
+.orderTable th,
+.orderTable td {
+  text-align: left;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+.orderTable th {
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 780;
+}
+.orderTable td a {
+  font-weight: 780;
+}
+.orderTable td a:hover {
+  text-decoration: underline;
+}
+.orderTable td small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.73rem;
+  margin-top: 3px;
 }
 .status {
   display: inline-flex;
@@ -831,6 +902,16 @@
   background: #a86725;
   border-radius: 50%;
   flex-shrink: 0;
+}
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 .backLink {
   display: inline-flex;
@@ -1000,6 +1081,36 @@
   .authPanel {
     padding: 20px;
   }
+  .orderTable,
+  .orderTable tbody,
+  .orderTable tr,
+  .orderTable td {
+    display: block;
+    width: 100%;
+  }
+  .orderTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .orderTable tr {
+    border-top: 1px solid var(--border);
+    padding-block: 5px;
+  }
+  .orderTable td {
+    border: 0;
+    padding: 6px 12px;
+  }
+  .orderTable td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-size: 0.68rem;
+    margin-bottom: 3px;
+    font-weight: 700;
+  }
 }
 @media (max-width: 470px) {
   .sidebar {
@@ -1057,6 +1168,9 @@
   .sectionHeader {
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+  .pagination {
+    flex-wrap: wrap;
   }
 }
 @media (prefers-reduced-motion: reduce) {

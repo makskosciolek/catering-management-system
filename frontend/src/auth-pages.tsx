@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { api, type User } from './api/client'
-import { roleLabel, sessionKey, useSession } from './session'
+import { isManagement, roleLabel, sessionKey, useSession } from './session'
 import { ErrorBox, Icon } from './ui'
 import styles from './app.module.css'
 
@@ -30,10 +30,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     onSuccess: (user) => {
       queryClient.clear()
       queryClient.setQueryData(sessionKey, user)
-      void navigate('/menu', { replace: true })
+      void navigate(isManagement(user) ? '/orders' : '/menu', { replace: true })
     },
   })
-  if (session.data) return <Navigate replace to="/menu" />
+  if (session.data)
+    return <Navigate replace to={isManagement(session.data) ? '/orders' : '/menu'} />
   return (
     <section className={styles.authGrid}>
       <div className={styles.authAside}>

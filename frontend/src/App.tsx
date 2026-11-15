@@ -14,7 +14,7 @@ import { api } from './api/client'
 import { isManagement, sessionKey, useSession } from './session'
 import { AuthPage, ProfilePage } from './auth-pages'
 import { MenuPage, type Basket } from './menu-page'
-import { OrderDetailPage } from './orders-pages'
+import { OrderDetailPage, OrdersPage } from './orders-pages'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
 
@@ -44,7 +44,7 @@ function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () =
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <Link to="/menu" className={styles.brand} aria-label="CateringHub">
+        <Link to={staff ? '/orders' : '/menu'} className={styles.brand} aria-label="CateringHub">
           <span className={styles.brandMark}>
             <Icon name="brand" size={23} />
           </span>
@@ -56,10 +56,18 @@ function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () =
         <div className={styles.navGroup}>
           <span className={styles.navLabel}>{staff ? 'STREFA ZESPOŁU' : 'STREFA KLIENTA'}</span>
           <nav aria-label="Nawigacja główna">
-            <NavLink to="/menu">
-              <Icon name="menu" />
-              Menu
-            </NavLink>
+            {!staff && (
+              <NavLink to="/menu">
+                <Icon name="menu" />
+                Menu
+              </NavLink>
+            )}
+            {user && (staff || user.role === 'customer') && (
+              <NavLink to="/orders">
+                <Icon name="orders" />
+                Zamówienia
+              </NavLink>
+            )}
             {user && (
               <NavLink to="/profile">
                 <Icon name="user" />
@@ -168,6 +176,14 @@ export function App() {
         />
         <Route path="/login" element={<AuthPage key="login" mode="login" />} />
         <Route path="/register" element={<AuthPage key="register" mode="register" />} />
+        <Route
+          path="/orders"
+          element={
+            <Protected>
+              <OrdersPage />
+            </Protected>
+          }
+        />
         <Route
           path="/orders/:id"
           element={
