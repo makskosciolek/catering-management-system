@@ -43,14 +43,14 @@ zaprojektowane w sposób umożliwiający obsługę wielu takich firm.
 
 - **Backend:** Python oraz framework Django z Django REST Framework – logika biznesowa,
   interfejs REST API, uwierzytelnianie i autoryzacja użytkowników, obsługa bazy danych.
-- **Frontend:** React (JavaScript, HTML, CSS) – aplikacja kliencka oraz panel
+- **Frontend:** React z językiem TypeScript – aplikacja kliencka oraz panel
   pracowników komunikujące się z backendem przez REST API; interfejs responsywny,
   dostosowany również do urządzeń mobilnych (np. dla kierowców).
 - **Baza danych:** PostgreSQL – relacyjna baza danych systemu.
-- **Kolejka komunikatów:** RabbitMQ wraz z Celery – obsługa zdarzeń biznesowych
-  (np. złożenie zamówienia, realizacja dostawy) oraz zadań wykonywanych w tle
-  (powiadomienia, cykliczne przeliczanie prognoz).
-- **Konteneryzacja:** Docker i Docker Compose – uruchamianie wszystkich składników
+- **Kolejka komunikatów:** RabbitMQ – przekazywanie zdarzeń biznesowych
+  (np. złożenie zamówienia, rezerwacja składników, realizacja dostawy) między
+  serwisami systemu.
+- **Konteneryzacja:** Docker i Docker Compose – uruchamianie infrastruktury
   systemu w jednolitym środowisku.
 - **Kontrola wersji:** Git i GitHub.
 

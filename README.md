@@ -24,6 +24,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Rola | Zakres dostępu |
 |---|---|
 | Klient | Menu, składanie i przegląd własnych zamówień, edycja profilu |
+| Magazynier | Składniki, stany magazynowe, rezerwacje pod zamówienia |
 | Pracownik kuchni | Lista produkcyjna, zmiana statusu przygotowania zamówień |
 | Kierowca | Przydzielone dostawy, zmiana statusu dostawy |
 | Menedżer | Zarządzanie menu, zamówieniami, dostawami, personelem, statystyki i prognozy |
@@ -32,9 +33,9 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 ## Technologie
 
 - **Backend:** Python, Django, Django REST Framework
-- **Frontend:** React (JavaScript)
+- **Frontend:** React, TypeScript, Vite
 - **Baza danych:** PostgreSQL
-- **Kolejka komunikatów i zdarzenia:** RabbitMQ, Celery
+- **Kolejka komunikatów i zdarzenia:** RabbitMQ
 - **Konteneryzacja:** Docker, Docker Compose
 - **Kontrola wersji:** Git, GitHub
 
@@ -42,9 +43,15 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 
 ```
 cateringhub/
-├── backend/        # API (Django + DRF)
-├── frontend/       # aplikacja kliencka i panel pracowników (React)
+├── backend/
+│   └── services/
+│       └── orders/ # serwis zamówień: konta, menu, zamówienia (Django + DRF)
+├── frontend/       # aplikacja kliencka i panel pracowników (React + TypeScript)
+├── infra/          # skrypty inicjalizujące bazy danych
+├── scripts/        # skrypty uruchamiające środowisko lokalne
+├── compose.yaml    # PostgreSQL i RabbitMQ w kontenerach
 └── docs/
+    ├── api/        # specyfikacja OpenAPI
     ├── raport/     # kolejne rozdziały i wersje raportu z projektu
     └── diagramy/   # diagramy UML, ERD, architektury
 ```
@@ -62,10 +69,12 @@ cateringhub/
 
 - [x] Utworzenie repozytorium i struktury projektu
 - [x] Analiza biznesowa: cel, problem, założenia, zakres produktu (rozdziały 1–4)
-- [ ] Specyfikacja wymagań oprogramowania (rozdział 5)
-- [ ] Projekt architektury systemu (rozdział 6)
-- [ ] Wybór technologii i narzędzi (rozdział 7)
-- [ ] Implementacja backendu
-- [ ] Implementacja frontendu
-- [ ] Testy
+- [x] Specyfikacja wymagań oprogramowania (rozdział 5)
+- [x] Projekt architektury systemu (rozdział 6)
+- [x] Wybór technologii i narzędzi (rozdział 7)
+- [x] Serwis zamówień: konta, menu, zamówienia, publikacja zdarzeń
+- [x] Aplikacja webowa: menu, koszyk, logowanie, historia i panel zamówień
+- [ ] Dokumentacja implementacji, testy i poprawki (rozdziały 8–10)
+- [ ] Serwis magazynu i serwis realizacji
+- [ ] Statystyki i prognozy
 - [ ] Wdrożenie
