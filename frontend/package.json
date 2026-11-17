@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "tsc -b && vite build",
-    "check": "tsc -b && eslint . && prettier --check src",
-    "format": "prettier --write src",
-    "api:types": "openapi-typescript ../docs/api/orders.openapi.yaml -o src/api/schema.d.ts"
+    "check": "tsc -b && eslint . && prettier --check src tests",
+    "format": "prettier --write src tests",
+    "api:types": "openapi-typescript ../docs/api/orders.openapi.yaml -o src/api/schema.d.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

@@ -173,7 +173,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 
 | ID | Rodzaj | Ograniczenie | Wpływ na projekt |
 |---|---|---|---|
-| C-01 | Czasowe | Trzy terminy raportów: 17.11.2026, 15.12.2026, 12.01.2027 | Funkcje realizowane etapami; w raporcie 1 tylko obsługa klienta i zamówień |
+| C-01 | Czasowe | Trzy terminy raportów (01.12.2026, 15.12.2026, 12.01.2027) | Pierwszy raport dokumentuje obsługę klienta i zamówień. |
 | C-02 | Zasobowe | Dwuosobowy zespół projektowy | Realizacja trzech obszarów funkcjonalnych, pozostałe tylko w architekturze |
 | C-03 | Budżetowe | Brak budżetu na licencje i płatne usługi | Wyłącznie technologie open source; środowisko uruchamiane lokalnie w kontenerach |
 | C-04 | Technologiczne | Uzgodniony stos: Python, Django, React, PostgreSQL, RabbitMQ | Architektura dobrana do możliwości tych narzędzi |

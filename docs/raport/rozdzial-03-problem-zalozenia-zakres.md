@@ -61,7 +61,7 @@ Szczegółowe uzasadnienie wyboru technologii zawiera rozdział 7.
 | Etap | Termin |
 |---|---|
 | Analiza biznesowa, specyfikacja wymagań, projekt architektury | do 13.11.2026 |
-| Implementacja pierwszej funkcji głównej i testy (raport 1) | do 17.11.2026 |
+| Implementacja pierwszej funkcji głównej i testy (raport 1) | do 01.12.2026 |
 | Implementacja pozostałych funkcji, wdrożenie, dokumentacja użytkownika (raport 2) | do 15.12.2026 |
 | Utrzymanie, aktualizacje, planowanie i kontrola, wnioski (raport 3) | do 12.01.2027 |
 | Obrona projektu | do 25.01.2027 |
