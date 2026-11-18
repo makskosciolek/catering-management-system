@@ -1,6 +1,7 @@
 import os
-from datetime import timedelta
 from pathlib import Path
+
+from cateringhub_core.config import jwt_settings, postgres_database
 
 BASE_DIR = Path(__file__).resolve().parent
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
@@ -44,17 +45,7 @@ TEMPLATES = [
         },
     }
 ]
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "orders",
-        "USER": "catering_orders",
-        "PASSWORD": os.environ["ORDERS_DB_PASSWORD"],
-        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
-        "PORT": os.environ.get("POSTGRES_PORT", "55432"),
-        "CONN_MAX_AGE": 0,
-    }
-}
+DATABASES = {"default": postgres_database("orders")}
 AUTH_USER_MODEL = "accounts.User"
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.Argon2PasswordHasher",
@@ -80,11 +71,9 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_FAILURE_VIEW = "cateringhub_orders.accounts.views.csrf_failure"
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE
 SESSION_COOKIE_HTTPONLY = True
-JWT_COOKIE_NAME = "cateringhub_access"
-JWT_COOKIE_PATH = "/api"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "cateringhub_orders.accounts.authentication.CookieJWTAuthentication",
+        "cateringhub_core.auth.CookieJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -97,13 +86,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {"anon": "120/min", "user": "600/min", "login": "10/min"},
 }
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
-    "SIGNING_KEY": os.environ["JWT_SIGNING_KEY"],
-    "ALGORITHM": "HS256",
-    "ISSUER": "cateringhub-orders",
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
+SIMPLE_JWT = jwt_settings()
 SPECTACULAR_SETTINGS = {
     "TITLE": "CateringHub: zamówienia",
     "DESCRIPTION": "API pilotażu SmakBox. Konta, menu i zamówienia na dania i porcje.",

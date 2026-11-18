@@ -4,6 +4,8 @@ requires-python = "==3.13.*"
 
 [manifest]
 members = [
+    "cateringhub-core",
+    "cateringhub-inventory",
     "cateringhub-orders",
 ]
 
@@ -67,11 +69,48 @@ wheels = [
 ]
 
 [[package]]
+name = "cateringhub-core"
+version = "0.1.0"
+source = { editable = "packages/core" }
+dependencies = [
+    { name = "django" },
+    { name = "djangorestframework" },
+    { name = "djangorestframework-simplejwt" },
+    { name = "drf-spectacular" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=5.2,<5.3" },
+    { name = "djangorestframework", specifier = ">=3.16,<3.17" },
+    { name = "djangorestframework-simplejwt", specifier = ">=5.5,<6" },
+    { name = "drf-spectacular", specifier = ">=0.28,<1" },
+]
+
+[[package]]
+name = "cateringhub-inventory"
+version = "0.1.0"
+source = { editable = "services/inventory" }
+dependencies = [
+    { name = "cateringhub-core" },
+    { name = "drf-spectacular", extra = ["sidecar"] },
+    { name = "psycopg", extra = ["binary"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cateringhub-core", editable = "packages/core" },
+    { name = "drf-spectacular", extras = ["sidecar"], specifier = ">=0.28,<1" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
+]
+
+[[package]]
 name = "cateringhub-orders"
 version = "0.1.0"
 source = { editable = "services/orders" }
 dependencies = [
     { name = "argon2-cffi" },
+    { name = "cateringhub-core" },
     { name = "django" },
     { name = "djangorestframework" },
     { name = "djangorestframework-simplejwt" },
@@ -83,6 +122,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "argon2-cffi", specifier = ">=23" },
+    { name = "cateringhub-core", editable = "packages/core" },
     { name = "django", specifier = ">=5.2,<5.3" },
     { name = "djangorestframework", specifier = ">=3.16,<3.17" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.5,<6" },

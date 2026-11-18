@@ -1,3 +1,5 @@
+from cateringhub_core.auth import enforce_csrf
+from cateringhub_core.config import JWT_COOKIE_NAME, JWT_COOKIE_PATH
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db import IntegrityError, transaction
@@ -11,7 +13,6 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken
 
-from .authentication import enforce_csrf
 from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 
 
@@ -70,13 +71,13 @@ class LoginView(APIView):
         token["role"] = user.role
         response = Response(UserSerializer(user).data)
         response.set_cookie(
-            settings.JWT_COOKIE_NAME,
+            JWT_COOKIE_NAME,
             str(token),
             max_age=int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()),
             httponly=True,
             secure=settings.CSRF_COOKIE_SECURE,
             samesite="Lax",
-            path=settings.JWT_COOKIE_PATH,
+            path=JWT_COOKIE_PATH,
         )
         return response
 
@@ -89,9 +90,7 @@ class LogoutView(APIView):
     def post(self, request):
         enforce_csrf(request)
         response = Response(status=204)
-        response.delete_cookie(
-            settings.JWT_COOKIE_NAME, path=settings.JWT_COOKIE_PATH, samesite="Lax"
-        )
+        response.delete_cookie(JWT_COOKIE_NAME, path=JWT_COOKIE_PATH, samesite="Lax")
         return response
 
 

@@ -86,6 +86,7 @@ class Command(BaseCommand):
             ("klient", "Jan", "Zieliński", user_model.Role.CUSTOMER),
             ("anna", "Anna", "Wiśniewska", user_model.Role.CUSTOMER),
             ("manager", "Marta", "Nowak", user_model.Role.MANAGER),
+            ("magazyn", "Ewa", "Lis", user_model.Role.WAREHOUSE),
             ("admin", "Ola", "Krawczyk", user_model.Role.ADMIN),
         ):
             email = f"{prefix}@smakbox.example"

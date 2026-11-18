@@ -1,0 +1,14 @@
+[project]
+name = "cateringhub-core"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "Django>=5.2,<5.3",
+  "djangorestframework>=3.16,<3.17",
+  "djangorestframework-simplejwt>=5.5,<6",
+  "drf-spectacular>=0.28,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

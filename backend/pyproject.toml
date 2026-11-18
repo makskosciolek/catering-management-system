@@ -1,5 +1,5 @@
 [tool.uv.workspace]
-members = ["services/*"]
+members = ["packages/*", "services/*"]
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-django>=4.9", "ruff>=0.9"]
