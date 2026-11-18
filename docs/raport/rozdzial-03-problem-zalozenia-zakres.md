@@ -109,7 +109,7 @@ zespół projektowy, który pełni wszystkie wymienione role w ograniczonym zakr
 | Projektant UI/UX | 1 | Projekt interfejsu aplikacji klienckiej i panelu pracowników |
 | Programista backend | 3 | Logika biznesowa, API, integracje, kolejka zdarzeń |
 | Programista frontend | 2 | Aplikacja kliencka i panel pracowników |
-| Specjalista ds. analizy danych | 1 | Moduł statystyk i prognozowania |
+| Specjalista ds. analizy danych | 1 | Definicje wskaźników sprzedaży i dostaw oraz metody prognozowania popytu |
 | Inżynier DevOps | 1 | Infrastruktura, konteneryzacja, CI/CD, monitorowanie |
 | Tester | 2 | Testy funkcjonalne, wydajnościowe i bezpieczeństwa |
 
@@ -178,17 +178,18 @@ Wdrożeniem pilotażowym prototypu jest jedna firma – SmakBox; obsługa wielu 
 ### 3.4.1 Moduły systemu
 
 Pełny system obejmuje moduły odpowiadające funkcjom głównym działalności firmy
-kateringowej. W tabeli zaznaczono, które z nich są realizowane w prototypie.
+kateringowej. Tabela wskazuje zakres zaplanowany w prototypie. Stan
+implementacji poszczególnych funkcji opisano w rozdziałach 5 i 8.
 
 | Moduł | Opis | Realizacja w prototypie |
 |---|---|---|
 | Obsługa klienta | Portal klienta: rejestracja, logowanie, menu i diety, składanie i przegląd zamówień | Tak |
 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, historia zamówień, preferencje, alergeny, reklamacje | Częściowo (profil, historia, alergeny) |
 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania | Tak |
-| Dostawy | Przydział dostaw kierowcom, statusy dostaw | Tak |
-| Analiza statystyk i prognozy | Statystyki sprzedaży, prognoza liczby zamówień | Tak |
-| Planowanie zasobów | Zapotrzebowanie na składniki wynikające z zamówień i prognoz | Częściowo (wyliczenie zapotrzebowania) |
-| Zarządzanie personelem | Konta pracowników, role, wyznaczanie optymalnej i minimalnej liczby pracowników | Częściowo (konta, role, wyliczenia) |
+| Dostawy | Przydział kierowcom, statusy i wskaźniki dostaw w Realizacji | Tak |
+| Statystyki sprzedaży | Podsumowania zamówień, porcji i sprzedaży oraz popularność dań w Zamówieniach | Tak |
+| Planowanie zapotrzebowania | Moduł Zasobów przelicza zamówienia i prognozowaną liczbę porcji na ilości składników według receptur | Tak |
+| Zarządzanie personelem | Konta pracowników, role, grafiki i wyznaczanie obsady | Częściowo (konta i role) |
 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników | Nie (opis w architekturze) |
 | Księgowość | Faktury, płatności, rozliczenia | Nie (integracja z systemem zewnętrznym opisana w architekturze) |
 
@@ -198,10 +199,10 @@ kateringowej. W tabeli zaznaczono, które z nich są realizowane w prototypie.
   ofertę, zakłada konto, składa i śledzi zamówienia.
 - **Panel pracowników (frontend)** – interfejs dla pracowników kuchni, kierowców,
   menedżerów i administratorów, z dostępem zależnym od roli.
-- **Backend (REST API)** – logika biznesowa systemu, uwierzytelnianie i autoryzacja,
-  publikowanie i obsługa zdarzeń, moduł prognoz.
-- **Baza danych** – dane o klientach, pracownikach, menu, dietach, zamówieniach,
-  dostawach i statystykach.
+- **Backend (REST API).** Zamówienia odpowiadają za konta, zamówienia i statystyki sprzedaży.
+  Zasoby obsługują magazyn i planowanie zapotrzebowania. Realizacja obsługuje kuchnię,
+  dostawy i ich wskaźniki. Serwisy przekazują zdarzenia biznesowe przez RabbitMQ.
+- **Bazy danych.** Każdy z trzech mikroserwisów ma własną bazę PostgreSQL.
 - **Kolejka komunikatów** – przekazywanie zdarzeń między modułami i wykonywanie
   zadań w tle.
 

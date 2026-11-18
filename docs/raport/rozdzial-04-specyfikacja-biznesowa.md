@@ -21,10 +21,10 @@ biznesowe, które system musi spełnić.
 |---|---|
 | Przyjęcie zamówienia | Klient samodzielnie składa zamówienie w aplikacji internetowej, wybierając dietę, kaloryczność i okres; otrzymuje potwierdzenie i może śledzić status. Dane trafiają bezpośrednio do systemu, bez przepisywania. |
 | Planowanie produkcji | System automatycznie generuje listę produkcyjną na dany dzień na podstawie aktywnych zamówień; kuchnia oznacza w systemie postęp przygotowania. |
-| Zakupy składników | System wylicza zapotrzebowanie na składniki na podstawie zamówień i prognozy na kolejne dni. |
-| Planowanie personelu | System prognozuje liczbę zamówień i wyznacza optymalną oraz minimalną liczbę pracowników kuchni i kierowców na dany dzień. |
+| Zakupy składników | Zasoby wykorzystują zamówione i prognozowane porcje oraz receptury, aby wyliczyć zapotrzebowanie na składniki na kolejne dni. |
+| Planowanie personelu | W docelowym produkcie firma korzysta z prognozy popytu, by dobrać obsadę kuchni i kierowców. |
 | Dostawy | Dostawy są przydzielane kierowcom według stref; kierowca oznacza realizację w aplikacji na telefonie, a klient i firma widzą status na bieżąco. |
-| Analiza działalności | Panel menedżera prezentuje statystyki sprzedaży, popularność diet, terminowość dostaw i prognozy. |
+| Analiza działalności | Panel menedżera prezentuje statystyki sprzedaży z Zamówień, wskaźniki dostaw z Realizacji oraz plan zapotrzebowania z Zasobów. |
 
 ## 4.3 Wymagania biznesowe
 
@@ -38,6 +38,9 @@ biznesowe, które system musi spełnić.
 | BR-06 | Dostęp do danych zależy od roli użytkownika | Ochrona danych osobowych i spójność danych |
 | BR-07 | Firma nie musi utrzymywać własnej infrastruktury IT | Brak działu IT w typowej firmie kateringowej |
 | BR-08 | System można rozwijać o kolejne moduły (księgowość, dostawcy) bez przebudowy całości | Rozwój firmy i produktu w czasie |
+
+BR-04 obejmuje docelowe planowanie składników i personelu. W prototypie
+zakres planowania ogranicza się do zapotrzebowania na składniki.
 
 ## 4.4 Oczekiwane efekty wdrożenia
 
@@ -57,7 +60,7 @@ stanowią mierniki, według których będzie można ocenić skuteczność system
 
 Wdrożenie systemu w modelu SaaS pozwoli firmie kateringowej zintegrować obsługę
 klienta, produkcję, logistykę i analizę danych bez inwestowania we własną
-infrastrukturę IT. Najważniejszą wartością biznesową, wyróżniającą produkt na tle
-konkurencji, jest wykorzystanie danych historycznych do prognozowania popytu oraz
-wyznaczania optymalnej i minimalnej liczby zasobów, co bezpośrednio przekłada się
-na niższe koszty i mniejsze marnowanie żywności.
+infrastrukturę IT. Dane historyczne o zamówieniach pozwolą oszacować ilość
+składników potrzebnych na kolejne dni. Celem jest ograniczenie braków i
+marnowania żywności. W pełnym produkcie prognoza może także wspierać
+planowanie personelu.

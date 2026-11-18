@@ -42,8 +42,9 @@ Wybrano **Python z Django**, ponieważ:
   bez pisania osobnego interfejsu;
 - podział projektu Django na aplikacje (`accounts`, `sales`) odpowiada modułom
   z rozdziału 6.4;
-- moduł statystyk i prognoz (funkcje F-09 i F-10) będzie mógł korzystać
-  z bibliotek analitycznych Pythona w tym samym języku co reszta systemu.
+- Django ORM pozwala liczyć statystyki sprzedaży w Zamówieniach i wskaźniki
+  dostaw w Realizacji. Zasoby mogą wykorzystać biblioteki Pythona do prognozy
+  popytu i przeliczenia jej na zapotrzebowanie na składniki.
 
 Niższa wydajność Pythona w porównaniu z Javą lub C# nie jest w tym systemie
 istotna: obciążenie firmy kateringowej jest umiarkowane, a serwisy można
@@ -86,9 +87,9 @@ Wybrano **RabbitMQ**. Zdarzeń w firmie kateringowej jest stosunkowo niewiele
 (rzędu tysięcy dziennie), ale każde musi dotrzeć do odbiorcy. RabbitMQ zapewnia
 trwałe kolejki, potwierdzenia, routing według typu zdarzenia i kolejki dead
 letter, a przy tym uruchamia się jako jeden kontener z panelem do podglądu
-kolejek. Kafka oferuje większą przepustowość i odtwarzanie historii zdarzeń,
-lecz jej złożoność nie jest uzasadniona przy tej skali; pozostaje opcją dla
-serwisu analitycznego, gdyby liczba firm na platformie znacznie wzrosła.
+kolejek. Kafka oferuje większą przepustowość i odtwarzanie historii zdarzeń.
+W prototypie RabbitMQ wystarcza do przekazywania danych potrzebnych magazynowi
+i obliczania zapotrzebowania na podstawie historii zamówień zapisanej w Zasobach.
 
 Do publikowania zdarzeń użyto biblioteki `pika` i własnej, niewielkiej
 skrzynki nadawczej zamiast frameworka zadań w tle (np. Celery). Skrzynka

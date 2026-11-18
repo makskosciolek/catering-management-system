@@ -31,4 +31,4 @@ odtwarzanie bazy i skalowanie systemowe interfejsu.
 | U-02 | Walidacja OpenAPI dla listy zamówień | Generator nie rozpoznał typu parametru `delivery_date` opisanego klasą pola serializatora. Walidacja zgłosiła ostrzeżenie. |
 | U-03 | Oględziny menu przy szerokości 390 px | Rysunek talerza znalazł się częściowo pod nagłówkiem. Pogarszał czytelność nagłówka na wąskim ekranie. |
 | U-04 | Ponowne uruchomienie instalacji przy działającym Vite na Windowsie | `npm ci` nie mógł podmienić używanego pliku `esbuild.exe`. Instalator kończył się po częściowym wykonaniu. |
-| U-05 | Uruchomienie kopii Zamówień na wolumenie współdzielonym z kopią zawierającą nowsze migracje | Zapis zamówienia kończył się błędem 500. Współdzielona tabela miała obowiązkową kolumnę `stock_attempt` spoza modelu tej wersji. |
+| U-05 | Uruchomienie Zamówień na istniejącym wolumenie z niezgodnym schematem bazy | Zapis zamówienia kończył się błędem 500. Tabela zawierała dodatkową obowiązkową kolumnę, której aplikacja nie wypełniała. |

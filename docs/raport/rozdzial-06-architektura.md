@@ -24,12 +24,12 @@ Rozważono trzy sposoby udostępnienia oprogramowania firmom kateringowym.
 | Kontrola firmy nad danymi | Wysoka | Pełna | Ograniczona umową |
 | Ryzyko dla firmy | Błędy konfiguracji, brak administratora | Awaria sprzętu, wysoki koszt | Uzależnienie od dostawcy |
 
-**Wybrano wariant C**: producent oprogramowania świadczy usługę SaaS na
-infrastrukturze dzierżawionej w modelu IaaS. Decydujące jest ograniczenie C-07
+**Wybrano wariant C.** W docelowym modelu producent oprogramowania świadczy
+usługę SaaS na infrastrukturze dzierżawionej w modelu IaaS. Decydujące jest ograniczenie C-07
 (firma kateringowa nie ma działu IT) oraz cel BG-08 (uruchomienie nowej firmy
-w ciągu jednego dnia). Ponieważ system działa w kontenerach i jest konfigurowany
-wyłącznie zmiennymi środowiskowymi, ten sam produkt można zainstalować również
-w wariancie A lub B dla dużej firmy, która wymaga pełnej kontroli nad danymi.
+w ciągu jednego dnia). Planowana konteneryzacja aplikacji i konfiguracja przez
+zmienne środowiskowe ułatwią też wdrożenie w wariancie A lub B. Prototyp jest
+rozwijany lokalnie z PostgreSQL i RabbitMQ uruchamianymi przez Docker Compose.
 
 ## 6.2 Wybór stylu architektonicznego
 
@@ -82,8 +82,8 @@ Skala ocen 1–5 (5 – najlepiej). Wagi wynikają z wymagań niefunkcjonalnych.
 - przyjmowanie zamówień jest krytyczne dla firmy i nie może zależeć od
   dostępności magazynu, kuchni czy raportów; w stylu C zamówienie zostaje
   przyjęte, nawet gdy pozostałe serwisy chwilowo nie działają;
-- funkcje główne z punktu 5.1 mają różne obciążenie (zamówienia w ciągu dnia,
-  produkcja w nocy, prognozy okresowo), więc opłaca się skalować je osobno;
+- Zamówienia, Zasoby i Realizacja mają różne obciążenie w ciągu dnia, więc
+  można je skalować niezależnie. Każda usługa dostarcza wskaźniki ze swojego obszaru;
 - każdy serwis ma dostęp tylko do własnych danych, co ułatwia spełnienie
   wymagań ochrony danych osobowych;
 - kolejne funkcje (księgowość, dostawcy) można dodać jako nowe serwisy
@@ -92,6 +92,10 @@ Skala ocen 1–5 (5 – najlepiej). Wagi wynikają z wymagań niefunkcjonalnych.
 Ryzyko złożoności ograniczono przez: tylko trzy serwisy w prototypie, jeden
 mechanizm komunikacji między nimi, wspólny zestaw narzędzi oraz wzorzec skrzynki
 nadawczej (outbox) chroniący przed utratą zdarzeń.
+
+Zamówienia odpowiadają za statystyki sprzedaży, Realizacja za wskaźniki
+dostaw, a Zasoby za planowanie zapotrzebowania na składniki. Panel menedżera
+może zestawić wyniki pobrane z API tych usług.
 
 ## 6.3 Architektura trójpoziomowa
 
@@ -119,11 +123,10 @@ flowchart TB
     subgraph aplikacje ["Poziom aplikacji"]
         direction LR
         web["Aplikacja webowa (SPA)"]
-        orders["Serwis zamówień"]
-        inventory["Serwis magazynu"]
-        fulfillment["Serwis realizacji"]
-        analytics["Serwis analityczny"]
-        bus["Szyna zdarzeń"]
+        orders["Zamówienia i statystyki sprzedaży"]
+        inventory["Zasoby i planowanie zapotrzebowania"]
+        fulfillment["Realizacja i wskaźniki dostaw"]
+        bus["RabbitMQ"]
     end
 
     subgraph technologia ["Poziom technologiczny"]
@@ -144,10 +147,11 @@ flowchart TB
     a5 -.-> p5
 
     web --> orders
-    orders --> bus
-    bus --> inventory
-    bus --> fulfillment
-    bus --> analytics
+    web --> inventory
+    web --> fulfillment
+    orders <--> bus
+    inventory <--> bus
+    fulfillment <--> bus
 
     runtime --> db
     runtime --> mq
@@ -155,6 +159,8 @@ flowchart TB
     biznes == "usługi aplikacji przez interfejsy użytkownika i API" ==> aplikacje
     aplikacje == "usługi infrastrukturalne" ==> technologia
 ```
+
+[Diagram architektury trójpoziomowej w PNG](../diagramy/02-architektura-trojpoziomowa.png)
 
 ### 6.3.1 Poziom biznesowy
 
@@ -164,32 +170,34 @@ flowchart TB
 | Rezerwacja składników | Magazynier | Zapewnienie składników na zamówione posiłki | Panel magazynu |
 | Produkcja posiłków | Pracownik kuchni | Przygotowanie posiłków na dany dzień | Lista produkcyjna |
 | Dostawa | Kierowca | Doręczenie posiłków pod wskazany adres | Lista dostaw na telefonie |
-| Analiza i planowanie | Menedżer | Planowanie zasobów i ocena wyników | Panel zamówień, statystyki, prognozy |
+| Analiza i planowanie | Menedżer | Planowanie składników i ocena sprzedaży oraz dostaw | Panel menedżera z widokami sprzedaży, dostaw i zapotrzebowania |
 
 ### 6.3.2 Poziom aplikacji
 
 | Komponent aplikacyjny | Funkcje aplikacji | Obsługiwane funkcje główne | Interfejs |
 |---|---|---|---|
 | Aplikacja webowa (SPA) | Prezentacja menu, koszyk, formularze, panele ról | wszystkie, jako warstwa prezentacji | HTTP, przeglądarka |
-| Serwis zamówień (`orders`) | Konta i role, menu, zamówienia, podsumowania, publikacja zdarzeń | F-01, F-02, F-07, F-09 | REST API `/api/orders/v1` |
-| Serwis magazynu (`inventory`) | Składniki, receptury, rezerwacje, zapotrzebowanie | F-03, F-04 | REST API, zdarzenia |
-| Serwis realizacji (`fulfillment`) | Lista produkcyjna, przydział i statusy dostaw | F-05, F-06 | REST API, zdarzenia |
-| Serwis analityczny (`analytics`) | Statystyki, prognoza zamówień, współczynniki zasobów | F-09, F-10 | REST API, zdarzenia |
+| Zamówienia (`orders`) | Konta i role, menu, zamówienia, statystyki sprzedaży i publikacja zdarzeń | F-01, F-02, F-07 (konta i role), F-09 (sprzedaż) | REST API `/api/orders/v1`, zdarzenia |
+| Zasoby (`inventory`) | Składniki, przyjęcia, receptury, rezerwacje i moduł planowania zapotrzebowania | F-03, F-04, F-10 | REST API, zdarzenia |
+| Realizacja (`fulfillment`) | Lista produkcyjna, przydział i statusy dostaw oraz wskaźniki dostaw | F-05, F-06, F-09 (dostawy) | REST API, zdarzenia |
 | Szyna zdarzeń | Przekazywanie zdarzeń biznesowych między serwisami | integracja | AMQP |
 
-W raporcie 1 zrealizowane są aplikacja webowa i serwis zamówień wraz
-z publikacją zdarzeń. Bazy danych dla serwisów magazynu i realizacji są już
-tworzone w środowisku, a kolejka zdarzeń magazynu jest zadeklarowana.
+W obecnym `main` działają aplikacja webowa i Zamówienia z publikacją zdarzeń
+oraz licznikami zamówień i porcji. Infrastruktura tworzy bazy dla Zasobów
+i Realizacji, a wydawca deklaruje kolejkę magazynu. W planie są przyjęcia,
+receptury, rezerwacje i wyliczanie zapotrzebowania, a także obsługa kuchni,
+dostaw i ich wskaźników. Zamówienia mają zostać rozszerzone o wartość sprzedaży
+i popularność dań.
 
 ### 6.3.3 Poziom technologiczny
 
 | Usługa infrastrukturalna | Realizacja | Obsługiwane komponenty |
 |---|---|---|
-| Wykonywanie aplikacji | Kontenery Docker, Python 3.13, Django 5.2 | Serwisy |
+| Wykonywanie aplikacji | Python 3.13 i Django 5.2. W planowanym wdrożeniu osobne kontenery API i procesów zdarzeń. | Serwisy |
 | Przechowywanie danych | PostgreSQL 17, osobna baza i konto dla każdego serwisu | Serwisy |
 | Przesyłanie komunikatów | RabbitMQ 4 (protokół AMQP) | Szyna zdarzeń |
 | Dostarczanie aplikacji webowej | Serwer plików statycznych i reverse proxy | Aplikacja webowa |
-| Sieć i moc obliczeniowa | Infrastruktura IaaS dostawcy chmury | wszystkie |
+| Sieć i moc obliczeniowa | Środowisko demonstracyjne na jednym komputerze z Docker Compose. Planowany model SaaS zakłada infrastrukturę IaaS. | wszystkie |
 
 ## 6.4 Wzorzec modułowy
 
@@ -202,13 +210,15 @@ dekompozycję na moduły, wzorzec warstwowy wewnątrz serwisu oraz model danych.
 |---|---|---|
 | `frontend` | Interfejs użytkownika, komunikacja z API | kontrakt OpenAPI serwisów |
 | `orders.accounts` | Użytkownicy, role, rejestracja, logowanie, profil | – |
-| `orders.sales` | Menu, zamówienia, podsumowania, skrzynka nadawcza zdarzeń | `orders.accounts` |
-| `inventory` | Składniki, receptury, rezerwacje | zdarzenia `order.*` |
-| `fulfillment` | Produkcja i dostawy | zdarzenia z `inventory` |
-| `analytics` | Statystyki i prognozy | zdarzenia wszystkich serwisów |
+| `orders.sales` | Menu, zamówienia, statystyki sprzedaży i skrzynka nadawcza zdarzeń | `orders.accounts` |
+| `inventory` | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Zdarzenia o zamówieniach, dane magazynowe |
+| `fulfillment` | Produkcja, dostawy i wskaźniki ich wykonania | Zdarzenia o rezerwacjach, dane o realizacji dostaw |
 
-Moduły różnych serwisów nie importują nawzajem swojego kodu ani nie czytają
-cudzych tabel. Jedyną zależnością między serwisami jest format zdarzenia.
+Każdy mikroserwis ma własną bazę i korzysta z danych, które zapisuje sam albo
+otrzymuje przez publiczne kontrakty. Zasoby będą zapisywać dane ze zdarzeń
+o zamówieniach, w tym identyfikatory dań, liczbę porcji i termin dostawy.
+Moduł planowania wykorzysta tę historię i receptury do wyliczenia potrzebnych
+ilości składników. Przeliczanie prognozy i składanie zamówień są odrębnymi operacjami.
 
 ### 6.4.2 Wzorzec warstwowy wewnątrz serwisu
 
@@ -303,13 +313,16 @@ i połączenia między nimi.
 
 ### 6.5.1 Komponenty i łączniki
 
+Tabela i diagram przedstawiają planowaną współpracę trzech mikroserwisów.
+
 | Komponent | Rola |
 |---|---|
 | Aplikacja webowa | Klient interfejsu REST, działa w przeglądarce |
-| Serwis zamówień (API) | Serwer REST, zapisuje zamówienia i zdarzenia |
-| Publikator zdarzeń | Proces przenoszący zdarzenia ze skrzynki nadawczej do brokera |
+| Zamówienia (API) | Zapisuje zamówienia i dane w skrzynce nadawczej. Udostępnia statystyki sprzedaży. |
+| Zasoby (API) | Udostępnia stany, rezerwacje i plan zapotrzebowania. |
+| Realizacja (API) | Udostępnia listę produkcyjną, dostawy i wskaźniki dostaw. |
+| Procesy zdarzeń | Publikują wpisy ze skrzynki nadawczej i obsługują zdarzenia z kolejek przypisanych usługom. |
 | Broker komunikatów | Rozdziela zdarzenia do kolejek subskrybentów |
-| Serwisy magazynu, realizacji, analityczny | Subskrybenci zdarzeń |
 | Bazy danych | Trwałe przechowywanie danych każdego serwisu |
 
 | Łącznik | Między | Styl | Charakter |
@@ -321,27 +334,31 @@ i połączenia między nimi.
 ```mermaid
 flowchart LR
     spa["Aplikacja webowa"]
-    api["Serwis zamówień: API"]
-    pub["Publikator zdarzeń"]
-    odb[("Baza orders")]
+    orders["Zamówienia"]
+    inv["Zasoby"]
+    ful["Realizacja (plan)"]
     ex{{"Wymiana cateringhub.events"}}
-    q1["Kolejka inventory.events"]
-    dlq["Kolejka dead letter"]
-    inv["Serwis magazynu"]
-    ful["Serwis realizacji"]
-    ana["Serwis analityczny"]
+    q1["Kolejka Zasobów"]
+    q2["Kolejka Zamówień"]
+    q3["Kolejka Realizacji (plan)"]
+    dlq["Kolejki dead letter"]
 
-    spa -- "HTTP/REST" --> api
-    api -- "SQL" --> odb
-    pub -- "SQL" --> odb
-    pub -- "AMQP: order.submitted" --> ex
-    ex --> q1
-    q1 --> inv
+    spa -- "REST" --> orders
+    spa -- "REST" --> inv
+    spa -. "REST" .-> ful
+    orders -- "order.submitted" --> ex
+    ex -- "zamówienia" --> q1 --> inv
+    inv -- "wynik rezerwacji" --> ex
+    ex -- "wynik rezerwacji" --> q2 --> orders
+    ex -. "stock.reserved" .-> q3
+    q3 -.-> ful
+    ful -. "zdarzenia kuchni i dostaw" .-> ex
     q1 -. "odrzucone wiadomości" .-> dlq
-    inv -- "AMQP: zdarzenia rezerwacji" --> ex
-    ex --> ful
-    ex --> ana
+    q2 -.-> dlq
+    q3 -.-> dlq
 ```
+
+[Diagram komponentów i łączników w PNG](../diagramy/05-komponenty-laczniki.png)
 
 ### 6.5.2 Scenariusz: złożenie zamówienia
 
@@ -383,63 +400,70 @@ zdarzenie ma unikalny identyfikator, po którym odbiorca rozpoznaje duplikaty.
 
 | Zdarzenie | Publikuje | Odbiera | Status |
 |---|---|---|---|
-| `order.submitted` | Serwis zamówień | Magazyn, analityka | Zrealizowane (publikacja) |
-| `stock.reserved` | Magazyn | Zamówienia, realizacja | Planowane |
-| `stock.rejected` | Magazyn | Zamówienia | Planowane |
-| `order.prepared` | Realizacja | Zamówienia, analityka | Planowane |
+| `order.submitted` | Zamówienia | Zasoby | Publikacja działa na `main`. Odbiór jest planowany. |
+| `stock.reserved` | Zasoby | Zamówienia i Realizacja | Planowane |
+| `stock.shortage` | Zasoby | Zamówienia | Planowane |
+| `order.prepared` | Realizacja | Zamówienia, Zasoby | Planowane |
 | `delivery.assigned` | Realizacja | Zamówienia | Planowane |
-| `delivery.completed` | Realizacja | Zamówienia, analityka | Planowane |
+| `delivery.completed` | Realizacja | Zamówienia | Planowane |
 
 ## 6.6 Wzorzec alokacyjny
 
-Wzorce alokacyjne pokazują rozmieszczenie oprogramowania na infrastrukturze.
-Zastosowano widok wdrożenia w układzie wielopoziomowym (multi-tier).
+Diagram pokazuje planowane wdrożenie w Docker Compose. Każdy mikroserwis
+uruchamia API i proces obsługi zdarzeń w oddzielnych kontenerach. Jeden
+serwer PostgreSQL przechowuje trzy bazy, każdą z osobnym kontem usługi.
 
 ```mermaid
 flowchart TB
-    subgraph t1 ["Poziom klienta"]
-        b["Przeglądarka: aplikacja webowa"]
+    b["Przeglądarka"]
+    px["Reverse proxy i pliki statyczne"]
+    subgraph orders ["Zamówienia"]
+        oapi["Kontener API"]
+        oworker["Proces zdarzeń"]
     end
-    subgraph t2 ["Poziom dostępowy"]
-        px["Reverse proxy: TLS, pliki statyczne, kierowanie ruchu"]
+    subgraph inventory ["Zasoby"]
+        iapi["Kontener API"]
+        iworker["Proces zdarzeń"]
     end
-    subgraph t3 ["Poziom aplikacji: kontenery"]
-        c1["orders: API"]
-        c2["orders: publikator zdarzeń"]
-        c3["inventory"]
-        c4["fulfillment"]
-        c5["analytics"]
+    subgraph fulfillment ["Realizacja"]
+        fapi["Kontener API"]
+        fworker["Proces zdarzeń"]
     end
-    subgraph t4 ["Poziom danych i komunikacji"]
-        pg[("PostgreSQL: bazy orders, inventory, fulfillment")]
-        rmq["RabbitMQ"]
-    end
+    odb[("Baza orders")]
+    idb[("Baza inventory")]
+    fdb[("Baza fulfillment")]
+    rmq["RabbitMQ"]
     b -- "HTTPS" --> px
-    px -- "HTTP" --> c1
-    px -- "HTTP" --> c3
-    px -- "HTTP" --> c4
-    px -- "HTTP" --> c5
-    c1 --> pg
-    c2 --> pg
-    c3 --> pg
-    c4 --> pg
-    c2 -- "AMQP" --> rmq
-    rmq -- "AMQP" --> c3
-    rmq -- "AMQP" --> c4
-    rmq -- "AMQP" --> c5
+    px -- "HTTP" --> oapi
+    px -- "HTTP" --> iapi
+    px -- "HTTP" --> fapi
+    oapi --> odb
+    oworker --> odb
+    iapi --> idb
+    iworker --> idb
+    fapi --> fdb
+    fworker --> fdb
+    oworker <-->|AMQP| rmq
+    iworker <-->|AMQP| rmq
+    fworker <-->|AMQP| rmq
 ```
+
+[Diagram wdrożenia w PNG](../diagramy/07-widok-wdrozenia.png)
 
 | Element oprogramowania | Środowisko deweloperskie (stan obecny) | Środowisko docelowe (SaaS) |
 |---|---|---|
 | Aplikacja webowa | Serwer deweloperski Vite, port 5173 | Pliki statyczne za reverse proxy |
-| Serwis zamówień | Proces Django, port 8001 | Kontener, wiele kopii |
-| Publikator zdarzeń | Polecenie uruchamiane lokalnie | Osobny kontener |
+| Zamówienia | Proces Django, port 8001 | Kontener API |
+| Zasoby | Planowane | Kontener API |
+| Realizacja | Planowana | Kontener API |
+| Procesy zdarzeń | Polecenie uruchamiane lokalnie dla Zamówień | Oddzielny kontener dla każdej usługi |
 | PostgreSQL | Kontener Docker Compose, port 55432 | Usługa bazy danych z kopiami zapasowymi |
 | RabbitMQ | Kontener Docker Compose, porty 5672 i 15672 | Kontener lub usługa zarządzana |
 | Kierowanie ruchu `/api/orders` | Proxy serwera Vite | Reverse proxy |
 
-Każdy poziom można skalować niezależnie. Poziom danych jest dostępny wyłącznie
-z poziomu aplikacji, a każdy serwis łączy się z bazą własnym kontem.
+Środowisko demonstracyjne opiera się na Docker Compose. Próbę uruchomienia
+na Kubernetes zaplanowano po sprawdzeniu pełnego procesu w Compose. W docelowym
+wdrożeniu każda usługa łączy się z własną bazą i może być uruchamiana niezależnie.
 
 ## 6.7 Wpływ architektury na atrybuty jakości
 

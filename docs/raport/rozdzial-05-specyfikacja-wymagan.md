@@ -11,19 +11,20 @@ systemu na elementy strukturalne architektury opisane w rozdziale 6.
 |---|---|---|---|---|
 | F-01 | Obsługa klienta | Rejestracja i logowanie, przeglądanie menu, koszyk, składanie zamówień, historia zamówień | Serwis zamówień (`orders`) | Zrealizowana (raport 1) |
 | F-02 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, dane kontaktowe, historia zamówień, alergeny i preferencje, reklamacje | Serwis zamówień (`orders`) | Częściowo: profil i historia |
-| F-03 | Planowanie zasobów | Stany magazynowe składników, rezerwacja składników pod zamówienia, zapotrzebowanie na kolejne dni | Serwis magazynu (`inventory`) | Planowana (raport 2) |
-| F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Serwis magazynu (`inventory`) | Opis w architekturze |
+| F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia składników, rezerwacje i zapotrzebowanie na kolejne dni | Zasoby (`inventory`) | Przyjęcia i rezerwacje planowane na raport 2, planowanie zapotrzebowania na raport 3. |
+| F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Zasoby (`inventory`) | Opis w architekturze |
 | F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Planowana (raport 2) |
-| F-06 | Dostawy | Przydział dostaw kierowcom według stref, statusy dostaw, potwierdzenie doręczenia | Serwis realizacji (`fulfillment`) | Planowana (raport 2) |
-| F-07 | Zarządzanie personelem | Konta pracowników, role, grafik, wyznaczanie optymalnej i minimalnej obsady | Serwis zamówień (konta i role), serwis analityczny (obsada) | Częściowo: konta i role |
+| F-06 | Dostawy | Przydział kierowcom według stref, statusy i potwierdzenie doręczenia | Realizacja (`fulfillment`) | Planowana (raport 2) |
+| F-07 | Zarządzanie personelem | Konta pracowników, role, grafik i wyznaczanie obsady | Zamówienia (`orders`) obsługują konta i role | Konta i role działają. Grafiki i planowanie obsady należą do wizji pełnego produktu. |
 | F-08 | Księgowość | Faktury, płatności, rozliczenia z klientami i dostawcami | Integracja z zewnętrznym systemem księgowym | Opis w architekturze |
-| F-09 | Analiza statystyk | Liczba zamówień i porcji, sprzedaż, popularność dań, terminowość dostaw | Serwis zamówień (podsumowania), serwis analityczny | Częściowo: podsumowanie zamówień i porcji na dzień |
-| F-10 | Prognozy | Prognoza liczby zamówień, współczynniki optymalnej i minimalnej ilości zasobów (personel, składniki) | Serwis analityczny (`analytics`) | Planowana (raport 3) |
+| F-09 | Analiza statystyk | Liczba zamówień i porcji, wartość sprzedaży, popularność dań oraz liczba i terminowość dostaw | Zamówienia (sprzedaż), Realizacja (dostawy) | Działa podsumowanie zamówień i porcji. Wartość sprzedaży, popularność dań oraz wskaźniki dostaw są planowane. |
+| F-10 | Prognozy | Prognoza zamówień i porcji oraz wyliczenie zapotrzebowania na składniki według receptur | Moduł planowania w Zasobach (`inventory`) | Planowana (raport 3) |
 
 Do realizacji w oprogramowaniu wybrano trzy obszary: obsługę klienta i zamówień
 (F-01, F-02), planowanie zasobów i realizację zamówień (F-03, F-05, F-06) oraz
-statystyki i prognozy (F-09, F-10). Pozostałe funkcje są opisane na poziomie
-architektury, tak aby można je było dodać bez przebudowy systemu.
+statystyki i prognozy (F-09, F-10). Panel menedżera może połączyć na jednym
+ekranie zestawienia pobrane z API poszczególnych usług. Pozostałe funkcje
+opisano na poziomie architektury.
 
 ## 5.2 Role użytkowników i poziomy dostępu
 
@@ -54,7 +55,8 @@ Macierz uprawnień (T – pełny dostęp, W – tylko własne dane, O – tylko 
 | Stany magazynowe i rezerwacje | – | T | O | – | T | T |
 | Lista produkcyjna | – | O | T | – | T | T |
 | Dostawy | W (status) | – | – | W (przydzielone) | T | T |
-| Statystyki i prognozy | – | – | – | – | T | T |
+| Statystyki sprzedaży i wskaźniki dostaw | – | – | – | – | O | O |
+| Plan zapotrzebowania na składniki | – | – | – | – | O | O |
 | Konta i role użytkowników | – | – | – | – | O | T |
 
 W prototypie z raportu 1 działają wiersze dotyczące menu, zamówień, podsumowań
@@ -105,7 +107,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | FR-11 | Historia zamówień klienta | Klient widzi listę i szczegóły wyłącznie własnych zamówień. | Z |
 | FR-12 | Panel zamówień | Menedżer i administrator widzą wszystkie zamówienia, filtrują je po dacie dostawy i wyszukują po danych klienta lub adresie. | Z |
 | FR-13 | Podsumowanie dnia | System podaje liczbę zamówień i łączną liczbę porcji dla wybranej daty dostawy. | Z |
-| FR-14 | Zdarzenie o zamówieniu | Złożenie zamówienia powoduje opublikowanie zdarzenia `order.submitted`, które odbierają pozostałe serwisy. | Z |
+| FR-14 | Zdarzenie o zamówieniu | Zamówienia publikują w RabbitMQ `order.submitted`. Zdarzenie zawiera identyfikatory dań, liczbę porcji i datę dostawy potrzebne Zasobom. | Z (publikacja). Odbiór przez Zasoby jest planowany. |
 | FR-15 | Anulowanie i zmiana zamówienia | Klient może anulować lub zmienić zamówienie do ustalonej godziny dnia poprzedzającego dostawę. | P |
 
 ### 5.4.4 Magazyn i planowanie zasobów
@@ -115,7 +117,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | FR-16 | Ewidencja składników | Magazynier wyświetla, dodaje, edytuje i usuwa składniki oraz ich stany. | P |
 | FR-17 | Receptury | Każde danie ma przypisaną listę składników z ilością na porcję. | P |
 | FR-18 | Rezerwacja składników | Po zdarzeniu `order.submitted` system rezerwuje składniki i potwierdza lub odrzuca zamówienie z powodu braków. | P |
-| FR-19 | Zapotrzebowanie na składniki | System wylicza zapotrzebowanie na kolejne dni na podstawie zamówień i prognozy. | P |
+| FR-19 | Zapotrzebowanie na składniki | Moduł planowania w Zasobach przelicza zamówione i prognozowane porcje na ilości składników według receptur. | P |
 
 ### 5.4.5 Planowanie operacyjne i dostawy
 
@@ -124,17 +126,17 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | FR-20 | Lista produkcyjna | Kuchnia widzi, ile porcji każdego dania przygotować na wybrany dzień. | P |
 | FR-21 | Statusy przygotowania | Pracownik kuchni oznacza zamówienie jako przygotowane i spakowane. | P |
 | FR-22 | Przydział dostaw | Menedżer przydziela zamówienia kierowcom według stref dostaw. | P |
-| FR-23 | Realizacja dostawy | Kierowca widzi przydzielone dostawy i oznacza je jako doręczone lub nieudane. | P |
+| FR-23 | Realizacja dostawy | Kierowca widzi przydzielone dostawy i oznacza je jako doręczone lub nieudane. Realizacja zestawia te wyniki dla menedżera i porównuje datę doręczenia z datą planowaną. | P |
 | FR-24 | Status dla klienta | Klient widzi aktualny status zamówienia na każdym etapie realizacji. | P |
 
 ### 5.4.6 Statystyki, prognozy i raportowanie
 
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
-| FR-25 | Statystyki sprzedaży | Menedżer przegląda liczbę zamówień, porcji i wartość sprzedaży w wybranym okresie oraz popularność dań. | P |
-| FR-26 | Prognoza liczby zamówień | System prognozuje liczbę zamówień i porcji na kolejne dni na podstawie danych historycznych z uwzględnieniem dnia tygodnia. | P |
-| FR-27 | Współczynniki zasobów | System wyznacza optymalną i minimalną liczbę pracowników kuchni i kierowców oraz ilość składników dla prognozowanego obciążenia. | P |
-| FR-28 | Raporty | Menedżer generuje raport dzienny i okresowy do pobrania. | P |
+| FR-25 | Statystyki sprzedaży | Zamówienia udostępniają menedżerowi liczbę zamówień i porcji, łączną wartość zamówień według zapisanych cen i popularność dań w wybranym okresie. | Z dla dziennej liczby zamówień i porcji (FR-13). Pozostałe wskaźniki są planowane. |
+| FR-26 | Prognoza liczby zamówień | Zasoby prognozują liczbę zamówień i porcji na kolejne dni na podstawie historii zdarzeń, z uwzględnieniem dnia tygodnia. Prognoza jest wejściem do FR-19. | P |
+| FR-27 | Współczynniki zasobów | Zasoby wyliczają ilości składników dla prognozowanego popytu. Wyliczanie minimalnej i optymalnej obsady kuchni oraz kierowców należy do wizji pełnego produktu. | P w zakresie składników |
+| FR-28 | Raporty | Menedżer może pobrać raport dzienny i okresowy. Źródłem statystyk sprzedaży są Zamówienia, wskaźników dostaw Realizacja, a planu składników Zasoby. | P |
 
 ## 5.5 Wymagania niefunkcjonalne
 
@@ -165,7 +167,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | BG-03 | Skrócenie planowania produkcji | Lista produkcyjna dostępna w czasie poniżej 5 minut | F-05, F-09 |
 | BG-04 | Ograniczenie marnowania żywności | Udział niewykorzystanych składników poniżej 7% | F-03, F-10 |
 | BG-05 | Poprawa terminowości dostaw | Co najmniej 95% dostaw w ustalonym oknie czasowym | F-06 |
-| BG-06 | Dopasowanie obsady do obciążenia | Spadek liczby nadgodzin o 30% | F-07, F-10 |
+| BG-06 | Dopasowanie obsady do obciążenia (cel pełnego produktu) | Spadek liczby nadgodzin o 30% | F-07, F-10 |
 | BG-07 | Decyzje oparte na danych | Raport dzienny dostępny dla zarządu bez ręcznego zestawiania | F-09 |
 | BG-08 | Dostępność produktu dla firm bez działu IT | Uruchomienie nowej firmy na platformie w ciągu jednego dnia | model SaaS |
 
@@ -198,7 +200,7 @@ P × S: 1–6 niskie, 7–14 średnie, 15–25 wysokie.
 | R-05 | Wyciek danych osobowych klientów | 2 | 5 | 10 – średnie | Skróty haseł Argon2, ciasteczka `HttpOnly`, ochrona CSRF, kontrola ról po stronie serwera, osobne konta bazodanowe |
 | R-06 | Błędna wycena zamówienia | 2 | 4 | 8 – średnie | Cena liczona wyłącznie na serwerze, testy automatyczne wyceny |
 | R-07 | Awaria infrastruktury dostawcy chmury | 2 | 5 | 10 – średnie | Kopie zapasowe bazy, kontenery możliwe do uruchomienia u innego dostawcy |
-| R-08 | Niska trafność prognoz przy małej ilości danych | 4 | 3 | 12 – średnie | Prosty model startowy, prezentowanie prognozy z zakresem niepewności, minimalna obsada jako dolne ograniczenie |
+| R-08 | Niska trafność prognoz przy małej ilości danych | 4 | 3 | 12 – średnie | Prosty model startowy, wskazanie liczby obserwacji i komunikat przy braku danych do oszacowania popytu |
 | R-09 | Przeciążenie w godzinach szczytu zamówień | 3 | 3 | 9 – średnie | Skalowanie serwisów w poziomie, kolejka wyrównująca obciążenie, ograniczenie liczby żądań |
 | R-10 | Niechęć pracowników do nowego systemu | 3 | 3 | 9 – średnie | Prosty interfejs dopasowany do roli, dokumentacja użytkownika, wdrożenie pilotażowe |
 | R-11 | Niedostępność członka zespołu | 2 | 4 | 8 – średnie | Wspólne repozytorium, opisy commitów, znajomość całości kodu przez oboje |

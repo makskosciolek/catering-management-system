@@ -15,9 +15,11 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 
 ### Główne funkcje produktu
 
-1. **Obsługa klienta i zamówień.** Działają rejestracja, logowanie, menu, koszyk, historia klienta i panel menedżera. Serwis publikuje zdarzenia zamówień w RabbitMQ.
-2. **Planowanie operacyjne i dostawy.** W planie są przyjęcia i rezerwacja składników, lista produkcyjna dla kuchni i przydział dostaw kierowcom.
-3. **Statystyki i prognozy.** Panel pokazuje liczbę zamówień i porcji. Prognozy zasobów i obsady są częścią wizji produktu.
+| Mikroserwis | Zakres | Stan na `main` |
+|---|---|---|
+| Zamówienia (`orders`) | Konta, menu, koszyk, zamówienia, historia klienta i statystyki sprzedaży | Działają obsługa zamówień, publikacja zdarzeń oraz liczniki zamówień i porcji. Wartość sprzedaży i popularność dań są planowane. |
+| Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Planowane. Infrastruktura przygotowuje bazę danych i kolejkę zdarzeń. |
+| Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Planowana jest obsługa kuchni i kierowców oraz zestawienia dostaw doręczonych, nieudanych i terminowych. |
 
 ### Role użytkowników
 
@@ -42,6 +44,11 @@ planowane role operacyjne.
 - **Kolejka komunikatów i zdarzenia:** RabbitMQ
 - **Konteneryzacja:** Docker, Docker Compose
 - **Kontrola wersji:** Git, GitHub
+
+W środowisku demonstracyjnym Docker Compose uruchamia PostgreSQL i RabbitMQ.
+Docelowo w Compose osobne kontenery uruchomią API i proces obsługi zdarzeń
+każdego mikroserwisu. Próbę z Kubernetes zaplanowano po uruchomieniu pełnego
+przepływu zamówienia w Compose.
 
 ## Uruchomienie lokalne
 
@@ -71,14 +78,14 @@ tego konta są w [skrypcie demonstracyjnym](backend/services/orders/src/catering
 Ctrl+C zatrzymuje procesy aplikacji. Logi znajdziesz w `.artifacts/dev/`.
 Jeśli chcesz zatrzymać też PostgreSQL i RabbitMQ, użyj `docker compose stop`.
 
-Jeśli używasz kilku kopii repozytorium z innymi migracjami, uruchom dla każdej
-oddzielny projekt Compose. W jej `.env` ustaw unikalną nazwę
+Jeśli uruchamiasz kilka środowisk demonstracyjnych na jednym komputerze,
+użyj dla każdego oddzielnego projektu Compose. W jego `.env` ustaw unikalną nazwę
 `COMPOSE_PROJECT_NAME` oraz wolne porty `POSTGRES_PORT`, `RABBITMQ_PORT`
-i `RABBITMQ_MANAGEMENT_PORT`. Przykładowe porty drugiej kopii to odpowiednio
+i `RABBITMQ_MANAGEMENT_PORT`. Przykładowe porty drugiego środowiska to odpowiednio
 `55433`, `5673` i `15673`. API i Vite nadal używają portów `8001` i `5173`,
-więc przed zmianą kopii zatrzymaj poprzedni `dev.ps1`. Na świeżej kopii
-możesz ustawić nazwę i porty w zmiennych środowiskowych PowerShella przed
-uruchomieniem obu skryptów w tym samym terminalu.
+więc przed uruchomieniem drugiego środowiska zatrzymaj poprzedni `dev.ps1`.
+Przy pierwszym uruchomieniu możesz ustawić nazwę i porty w zmiennych
+środowiskowych PowerShella przed uruchomieniem obu skryptów w tym samym terminalu.
 
 ## Sprawdzenie zmian
 
@@ -141,7 +148,8 @@ cateringhub/
 - [x] Aplikacja webowa: menu, koszyk, logowanie, historia i panel zamówień
 - [x] Dokumentacja implementacji, testy i poprawki (rozdziały 8–10)
 - [ ] Serwis magazynu i serwis realizacji
-- [ ] Statystyki i prognozy
+- [ ] Wartość sprzedaży i popularność dań w Zamówieniach
+- [ ] Wskaźniki dostaw w Realizacji i planowanie zapotrzebowania w Zasobach
 - [ ] Wdrożenie
 
 [Spis rozdziałów raportu](docs/raport/README.md) ·
