@@ -3,6 +3,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
+from .validators import PhoneField
+
 User = get_user_model()
 
 
@@ -12,6 +14,8 @@ class NormalizedEmailField(serializers.EmailField):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    phone = PhoneField(max_length=30, required=False, allow_blank=True)
+
     class Meta:
         model = User
         fields = ("id", "email", "first_name", "last_name", "phone", "role")
@@ -21,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     email = NormalizedEmailField()
     password = serializers.CharField(write_only=True, trim_whitespace=False)
+    phone = PhoneField(max_length=30, required=False, allow_blank=True)
 
     class Meta:
         model = User

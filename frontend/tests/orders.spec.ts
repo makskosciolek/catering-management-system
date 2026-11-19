@@ -7,7 +7,10 @@ test('klient składa zamówienie, a menedżer znajduje je w swoim panelu', async
 }, info) => {
   const email = 'e2e-' + Date.now() + '@example.com'
   const address = 'ul. Testowa 15, Kraków'
-  const nextDay = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+  // Pojutrze jest dozwolone niezależnie od godziny granicznej przyjmowania zamówień.
+  const deliveryDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw' }).format(
+    new Date(Date.now() + 2 * 86_400_000),
+  )
   await page.goto('/register')
   await page.getByLabel('Imię', { exact: true }).fill('Ewa')
   await page.getByLabel('Nazwisko', { exact: true }).fill('Testowa')
@@ -20,7 +23,7 @@ test('klient składa zamówienie, a menedżer znajduje je w swoim panelu', async
   await page.screenshot({ path: info.outputPath('menu-desktop.png') })
   await add.click()
   await add.click()
-  await page.getByLabel('Termin dostawy').fill(nextDay)
+  await page.getByLabel('Termin dostawy').fill(deliveryDay)
   await page.getByLabel('Adres dostawy').fill(address)
   await page.getByLabel('Telefon kontaktowy').fill('000 000 000')
   await page.getByRole('button', { name: 'Złóż zamówienie' }).click()

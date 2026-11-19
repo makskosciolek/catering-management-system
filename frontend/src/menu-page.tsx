@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { api, type Meal } from './api/client'
-import { money, today } from './format'
+import { earliestDeliveryDate, money, ORDER_CUTOFF_HOUR } from './format'
 import { useSession } from './session'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
@@ -276,8 +276,17 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
               <h3>Dane dostawy</h3>
               <label>
                 Termin dostawy
-                <input name="date" type="date" min={today()} required />
+                <input
+                  name="date"
+                  type="date"
+                  min={earliestDeliveryDate()}
+                  aria-describedby="delivery-date-hint"
+                  required
+                />
               </label>
+              <p id="delivery-date-hint" className={styles.optional}>
+                Zamówienia na jutro przyjmujemy do {ORDER_CUTOFF_HOUR}:00.
+              </p>
               <label>
                 Adres dostawy
                 <input
@@ -294,6 +303,7 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
                   name="phone"
                   type="tel"
                   autoComplete="tel"
+                  placeholder="np. 600 700 800"
                   defaultValue={user.phone}
                   maxLength={30}
                   required

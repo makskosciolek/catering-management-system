@@ -1,7 +1,9 @@
-from django.utils import timezone
+from django.conf import settings
 from rest_framework import serializers
 
+from ..accounts.validators import PhoneField
 from .models import Meal, Order, OrderItem
+from .rules import earliest_delivery_date
 from .services import create_order
 
 
@@ -51,14 +53,20 @@ class OrderLineInput(serializers.Serializer):
 
 class CreateOrderSerializer(serializers.ModelSerializer):
     items = OrderLineInput(many=True, allow_empty=False, max_length=50)
+    contact_phone = PhoneField(max_length=30)
 
     class Meta:
         model = Order
         fields = ("delivery_date", "delivery_address", "contact_phone", "note", "items")
 
     def validate_delivery_date(self, value):
-        if value < timezone.localdate():
-            raise serializers.ValidationError("Data dostawy nie może być w przeszłości.")
+        earliest = earliest_delivery_date()
+        if value < earliest:
+            raise serializers.ValidationError(
+                f"Najwcześniejszy możliwy termin dostawy to {earliest:%d.%m.%Y}. "
+                f"Zamówienia na następny dzień przyjmujemy do godziny "
+                f"{settings.ORDER_CUTOFF_HOUR}:00."
+            )
         return value
 
     def validate_items(self, value):

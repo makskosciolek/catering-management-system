@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import Mock
 from uuid import uuid4
@@ -8,6 +8,7 @@ import pytest
 from cateringhub_core.messaging import STOCK_RESERVED, STOCK_SHORTAGE, Event, publish_one
 from cateringhub_orders.sales.events import apply_stock_result
 from cateringhub_orders.sales.models import Meal, Order, OutboxEvent, ProcessedEvent
+from cateringhub_orders.sales.rules import earliest_delivery_date
 from conftest import BASE, PASSWORD, csrf, login
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -22,7 +23,8 @@ def meal():
 
 def order_data(meal):
     return {
-        "delivery_date": (timezone.localdate() + timedelta(days=1)).isoformat(),
+        # Pojutrze jest dozwolone niezależnie od godziny uruchomienia testów.
+        "delivery_date": (timezone.localdate() + timedelta(days=2)).isoformat(),
         "delivery_address": "Przykładowa 1, Kraków",
         "contact_phone": "000 000 000",
         "items": [{"meal_id": str(meal.id), "quantity": 2}],
@@ -85,7 +87,7 @@ def test_order_uses_server_price_and_writes_outbox(api, customer, meal):
     assert event.published_at is None
 
 
-@pytest.mark.parametrize("invalid", ["quantity", "date", "inactive"])
+@pytest.mark.parametrize("invalid", ["quantity", "date", "today", "phone", "inactive"])
 def test_invalid_order_does_not_write_anything(api, customer, meal, invalid):
     login(api, customer)
     data = order_data(meal)
@@ -93,6 +95,10 @@ def test_invalid_order_does_not_write_anything(api, customer, meal, invalid):
         data["items"][0]["quantity"] = 0
     elif invalid == "date":
         data["delivery_date"] = (timezone.localdate() - timedelta(days=1)).isoformat()
+    elif invalid == "today":
+        data["delivery_date"] = timezone.localdate().isoformat()
+    elif invalid == "phone":
+        data["contact_phone"] = "zadzwonić do recepcji"
     else:
         meal.is_active = False
         meal.save(update_fields=("is_active",))
@@ -142,3 +148,38 @@ def test_late_stock_result_does_not_overwrite_reservation(api, customer, meal):
     assert order.status == Order.Status.STOCK_RESERVED
     assert order.stock_attempt == 2
     assert ProcessedEvent.objects.count() == 2
+
+
+@pytest.mark.parametrize(("hour", "days"), [(0, 1), (17, 1), (18, 2), (23, 2)])
+def test_earliest_delivery_date_depends_on_cutoff_hour(hour, days):
+    now = timezone.make_aware(datetime(2026, 11, 19, hour, 59))
+    assert earliest_delivery_date(now) == date(2026, 11, 19) + timedelta(days=days)
+
+
+def test_next_day_order_rejected_after_cutoff(api, customer, meal, settings):
+    settings.ORDER_CUTOFF_HOUR = 0
+    login(api, customer)
+    data = order_data(meal)
+    data["delivery_date"] = (timezone.localdate() + timedelta(days=1)).isoformat()
+    response = submit(api, data)
+    assert response.status_code == 400
+    assert "delivery_date" in response.json()
+    assert not Order.objects.exists()
+    data["delivery_date"] = (timezone.localdate() + timedelta(days=2)).isoformat()
+    assert submit(api, data).status_code == 201
+
+
+def test_phone_is_validated_and_normalized(api, customer):
+    login(api, customer)
+    profile = f"{BASE}/auth/me/"
+    for phone in ("123", "600 700 800 wew. 12", "+48 600 700 800 900 100 1"):
+        response = api.patch(profile, {"phone": phone}, format="json", HTTP_X_CSRFTOKEN=csrf(api))
+        assert response.status_code == 400
+        assert "phone" in response.json()
+    response = api.patch(
+        profile, {"phone": " +48  600-700-800 "}, format="json", HTTP_X_CSRFTOKEN=csrf(api)
+    )
+    assert response.status_code == 200
+    assert response.json()["phone"] == "+48 600-700-800"
+    response = api.patch(profile, {"phone": ""}, format="json", HTTP_X_CSRFTOKEN=csrf(api))
+    assert response.status_code == 200

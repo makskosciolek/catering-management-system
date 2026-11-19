@@ -59,6 +59,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 LANGUAGE_CODE = "pl"
 TIME_ZONE = "Europe/Warsaw"
+# Godzina, do której przyjmowane są zamówienia z dostawą na następny dzień.
+ORDER_CUTOFF_HOUR = int(os.environ.get("ORDER_CUTOFF_HOUR", "18"))
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "/api/orders/static/"
