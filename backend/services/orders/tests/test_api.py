@@ -183,3 +183,50 @@ def test_phone_is_validated_and_normalized(api, customer):
     assert response.json()["phone"] == "+48 600-700-800"
     response = api.patch(profile, {"phone": ""}, format="json", HTTP_X_CSRFTOKEN=csrf(api))
     assert response.status_code == 200
+
+
+def test_repeated_submission_returns_existing_order(api, customer, meal):
+    login(api, customer)
+    data = {**order_data(meal), "id": str(uuid4())}
+    first = submit(api, data)
+    assert first.status_code == 201
+    repeated = submit(api, data)
+    assert repeated.status_code == 200
+    assert repeated.json()["id"] == first.json()["id"] == data["id"]
+    assert Order.objects.count() == 1
+    assert OutboxEvent.objects.count() == 1
+    changed = {**data, "items": [{"meal_id": str(meal.id), "quantity": 3}]}
+    assert submit(api, changed).status_code == 409
+    other = get_user_model().objects.create_user("other@example.com", PASSWORD)
+    login(api, other)
+    assert submit(api, data).status_code == 409
+    assert Order.objects.count() == 1
+
+
+def test_email_is_normalized_for_accounts_saved_outside_registration(api):
+    user = get_user_model()(email=" Ala.Kowalska@Example.COM ", first_name="Ala")
+    user.set_password(PASSWORD)
+    user.save()
+    user.refresh_from_db()
+    assert user.email == "ala.kowalska@example.com"
+    response = api.post(
+        f"{BASE}/auth/login/",
+        {"email": "ALA.KOWALSKA@example.com", "password": PASSWORD},
+        format="json",
+        HTTP_X_CSRFTOKEN=csrf(api),
+    )
+    assert response.status_code == 200
+
+
+def test_registration_rejects_too_long_email(api):
+    payload = {
+        "email": "a" * 250 + "@example.com",
+        "password": PASSWORD,
+        "first_name": "Anna",
+        "last_name": "Testowa",
+    }
+    response = api.post(
+        f"{BASE}/auth/register/", payload, format="json", HTTP_X_CSRFTOKEN=csrf(api)
+    )
+    assert response.status_code == 400
+    assert "email" in response.json()

@@ -52,12 +52,17 @@ class OrderLineInput(serializers.Serializer):
 
 
 class CreateOrderSerializer(serializers.ModelSerializer):
+    id = serializers.UUIDField(
+        required=False,
+        help_text="Identyfikator próby złożenia zamówienia nadany przez klienta. "
+        "Ponowienie z tym samym identyfikatorem i danymi zwraca zapisane zamówienie.",
+    )
     items = OrderLineInput(many=True, allow_empty=False, max_length=50)
-    contact_phone = PhoneField(max_length=30)
+    contact_phone = PhoneField(max_length=30, label="Telefon kontaktowy")
 
     class Meta:
         model = Order
-        fields = ("delivery_date", "delivery_address", "contact_phone", "note", "items")
+        fields = ("id", "delivery_date", "delivery_address", "contact_phone", "note", "items")
 
     def validate_delivery_date(self, value):
         earliest = earliest_delivery_date()
@@ -75,4 +80,5 @@ class CreateOrderSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        return create_order(customer=self.context["request"].user, **validated_data)
+        order, self.created = create_order(customer=self.context["request"].user, **validated_data)
+        return order

@@ -62,7 +62,8 @@ export function MenuPage(props: CartProps) {
   const shown = meals.filter(
     (meal) =>
       (category === 'all' || meal.category === category) &&
-      (meal.name + ' ' + meal.description)
+      [meal.name, meal.description, meal.allergens]
+        .join(' ')
         .toLocaleLowerCase('pl')
         .includes(search.trim().toLocaleLowerCase('pl')),
   )
@@ -120,7 +121,7 @@ export function MenuPage(props: CartProps) {
               <input
                 aria-label="Szukaj dania"
                 type="search"
-                placeholder="Szukaj dania"
+                placeholder="Szukaj dania lub alergenu"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -144,11 +145,11 @@ export function MenuPage(props: CartProps) {
               <div className={styles.empty}>
                 <Icon name="search" />
                 <h3>Brak pasujących dań</h3>
-                <p>Zmień kategorię lub wpisz inną nazwę.</p>
+                <p>Zmień kategorię albo wpisz inną nazwę lub alergen.</p>
               </div>
             ))}
         </section>
-        <Cart meals={meals} {...props} />
+        <Cart meals={meals} menuLoaded={menu.isSuccess} {...props} />
       </div>
     </>
   )
@@ -188,12 +189,26 @@ function MealCard({ meal, quantity, onAdd }: { meal: Meal; quantity: number; onA
   )
 }
 
-function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meals: Meal[] }) {
+function Cart({
+  basket,
+  changeQuantity,
+  meals,
+  menuLoaded,
+  clearBasket,
+}: CartProps & { meals: Meal[]; menuLoaded: boolean }) {
   const session = useSession()
   const user = session.data
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const selected = meals.filter((meal) => basket[meal.id] > 0)
+  // Danie mogło zostać wycofane z menu po dodaniu do koszyka. Nie pomijamy go po cichu,
+  // tylko pokazujemy i blokujemy wysyłkę, dopóki klient go nie usunie.
+  const unavailable = menuLoaded
+    ? Object.keys(basket).filter((id) => !meals.some((meal) => meal.id === id))
+    : []
+  // Identyfikator próby złożenia zamówienia. Ponowienie po utracie połączenia wysyła
+  // ten sam identyfikator, więc serwer nie utworzy drugiego zamówienia.
+  const [attemptId, setAttemptId] = useState(() => crypto.randomUUID())
   const quantity = selected.reduce((total, meal) => total + basket[meal.id], 0)
   const estimate =
     selected.reduce(
@@ -204,6 +219,7 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
     mutationFn: api.submitOrder,
     onSuccess: (order) => {
       clearBasket()
+      setAttemptId(crypto.randomUUID())
       queryClient.setQueryData(['orders', 'detail', order.id], order)
       void queryClient.invalidateQueries({ queryKey: ['orders'] })
       void navigate('/orders/' + order.id, { state: { placed: true } })
@@ -213,6 +229,7 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     mutation.mutate({
+      id: attemptId,
       delivery_date: String(data.get('date')),
       delivery_address: String(data.get('address')),
       contact_phone: String(data.get('phone')),
@@ -231,7 +248,7 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
           <p>Liczba porcji: {quantity}</p>
         </div>
       </div>
-      {selected.length === 0 ? (
+      {selected.length === 0 && unavailable.length === 0 ? (
         <div className={styles.cartEmpty}>
           <Icon name="bag" size={26} />
           <strong>Koszyk jest pusty</strong>
@@ -239,6 +256,18 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
         </div>
       ) : (
         <>
+          {unavailable.length > 0 && (
+            <div className={styles.error} role="alert">
+              <span>Usuń z koszyka dania wycofane z menu, aby złożyć zamówienie.</span>
+              <button
+                type="button"
+                className={styles.textButton}
+                onClick={() => unavailable.forEach((id) => changeQuantity(id, -basket[id]))}
+              >
+                Usuń niedostępne
+              </button>
+            </div>
+          )}
           <ul className={styles.cartList}>
             {selected.map((meal) => (
               <li key={meal.id}>
@@ -314,7 +343,10 @@ function Cart({ basket, changeQuantity, meals, clearBasket }: CartProps & { meal
                 <textarea name="note" rows={2} maxLength={500} />
               </label>
               {mutation.error && <ErrorBox error={mutation.error} />}
-              <button className={styles.primaryButton} disabled={mutation.isPending}>
+              <button
+                className={styles.primaryButton}
+                disabled={mutation.isPending || unavailable.length > 0}
+              >
                 {mutation.isPending ? 'Zapisywanie…' : 'Złóż zamówienie'}{' '}
                 <Icon name="arrow" size={17} />
               </button>

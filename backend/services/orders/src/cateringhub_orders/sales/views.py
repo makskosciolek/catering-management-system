@@ -3,6 +3,7 @@ from django.db.models import Count, Sum
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
     inline_serializer,
@@ -42,7 +43,14 @@ class MealViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @extend_schema_view(
-    create=extend_schema(request=CreateOrderSerializer, responses={201: OrderSerializer}),
+    create=extend_schema(
+        request=CreateOrderSerializer,
+        responses={
+            201: OrderSerializer,
+            200: OrderSerializer,
+            409: OpenApiResponse(description="Identyfikator zamówienia użyty z innymi danymi."),
+        },
+    ),
     list=extend_schema(parameters=[OpenApiParameter("delivery_date", OpenApiTypes.DATE)]),
 )
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
@@ -78,7 +86,8 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = CreateOrderSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        response_status = status.HTTP_201_CREATED if serializer.created else status.HTTP_200_OK
+        return Response(OrderSerializer(order).data, status=response_status)
 
     @extend_schema(
         responses=inline_serializer(

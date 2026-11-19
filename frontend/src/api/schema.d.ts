@@ -193,6 +193,11 @@ export interface components {
         CategoryEnum: "main" | "soup" | "salad";
         CreateOrder: {
             /**
+             * Format: uuid
+             * @description Identyfikator próby złożenia zamówienia nadany przez klienta. Ponowienie z tym samym identyfikatorem i danymi zwraca zapisane zamówienie.
+             */
+            id?: string;
+            /**
              * Data dostawy
              * Format: date
              */
@@ -594,6 +599,14 @@ export interface operations {
             };
         };
         responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -601,6 +614,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Order"];
                 };
+            };
+            /** @description Identyfikator zamówienia użyty z innymi danymi. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

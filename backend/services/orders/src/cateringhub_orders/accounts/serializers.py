@@ -14,7 +14,7 @@ class NormalizedEmailField(serializers.EmailField):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    phone = PhoneField(max_length=30, required=False, allow_blank=True)
+    phone = PhoneField(max_length=30, required=False, allow_blank=True, label="Telefon")
 
     class Meta:
         model = User
@@ -23,9 +23,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    email = NormalizedEmailField()
+    email = NormalizedEmailField(max_length=254)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
-    phone = PhoneField(max_length=30, required=False, allow_blank=True)
+    phone = PhoneField(max_length=30, required=False, allow_blank=True, label="Telefon")
 
     class Meta:
         model = User
