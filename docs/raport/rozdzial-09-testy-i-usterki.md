@@ -32,3 +32,5 @@ odtwarzanie bazy i skalowanie systemowe interfejsu.
 | U-03 | Oględziny menu przy szerokości 390 px | Rysunek talerza znalazł się częściowo pod nagłówkiem. Pogarszał czytelność nagłówka na wąskim ekranie. |
 | U-04 | Ponowne uruchomienie instalacji przy działającym Vite na Windowsie | `npm ci` nie mógł podmienić używanego pliku `esbuild.exe`. Instalator kończył się po częściowym wykonaniu. |
 | U-05 | Uruchomienie Zamówień na istniejącym wolumenie z niezgodnym schematem bazy | Zapis zamówienia kończył się błędem 500. Tabela zawierała dodatkową obowiązkową kolumnę, której aplikacja nie wypełniała. |
+| U-06 | Przegląd reguł składania zamówienia pod kątem procesu w kuchni | Klient mógł złożyć zamówienie z dostawą na bieżący dzień albo na jutro późnym wieczorem. Kuchnia planuje produkcję dzień wcześniej, więc takie zamówienie nie zostałoby przygotowane na czas. |
+| U-07 | Przegląd walidacji formularzy zamówienia i profilu | Pole telefonu przyjmowało dowolny tekst, np. „zadzwonić do recepcji” albo „123”. Kierowca nie mógłby skontaktować się z klientem przy dostawie. |

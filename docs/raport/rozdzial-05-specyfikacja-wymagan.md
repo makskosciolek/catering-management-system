@@ -84,7 +84,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
-| FR-01 | Rejestracja klienta | Użytkownik zakłada konto, podając e-mail, hasło, imię, nazwisko i opcjonalnie telefon. Adres e-mail jest unikalny bez względu na wielkość liter. Hasło musi spełniać reguły złożoności. | Z |
+| FR-01 | Rejestracja klienta | Użytkownik zakłada konto, podając e-mail, hasło, imię, nazwisko i opcjonalnie telefon (od 9 do 15 cyfr, dopuszczalne spacje, myślniki i znak + na początku). Adres e-mail jest unikalny bez względu na wielkość liter. Hasło musi spełniać reguły złożoności. | Z |
 | FR-02 | Logowanie i wylogowanie | Użytkownik loguje się adresem e-mail i hasłem. Po zalogowaniu system rozpoznaje jego rolę. Wylogowanie kończy sesję. | Z |
 | FR-03 | Konfiguracja konta | Zalogowany użytkownik wyświetla swój profil i zmienia imię, nazwisko oraz telefon. Adresu e-mail i roli nie można zmienić samodzielnie. | Z |
 | FR-04 | Zarządzanie kontami i rolami | Administrator dodaje, edytuje i dezaktywuje konta pracowników oraz nadaje im role. | Z (panel administracyjny Django) |
@@ -102,7 +102,7 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
 | FR-08 | Koszyk | Klient dodaje dania do koszyka, zmienia liczbę porcji i usuwa pozycje przed złożeniem zamówienia. | Z |
-| FR-09 | Złożenie zamówienia | Klient podaje datę dostawy, adres, telefon kontaktowy i uwagi. Data dostawy nie może być z przeszłości, każde danie może wystąpić w zamówieniu raz, liczba porcji mieści się w zakresie 1–1000. | Z |
+| FR-09 | Złożenie zamówienia | Klient podaje datę dostawy, adres, telefon kontaktowy i uwagi. Zamówienie na następny dzień można złożyć do godziny 18:00, później najbliższy termin to pojutrze; dostawy na bieżący dzień nie są przyjmowane. Numer telefonu musi mieć od 9 do 15 cyfr. Każde danie może wystąpić w zamówieniu raz, liczba porcji mieści się w zakresie 1–1000. | Z |
 | FR-10 | Wycena po stronie serwera | Wartość zamówienia jest liczona na serwerze na podstawie aktualnych cen. Cena i nazwa dania są zapisywane w pozycji zamówienia, więc późniejsza zmiana menu nie zmienia historii. | Z |
 | FR-11 | Historia zamówień klienta | Klient widzi listę i szczegóły wyłącznie własnych zamówień. | Z |
 | FR-12 | Panel zamówień | Menedżer i administrator widzą wszystkie zamówienia, filtrują je po dacie dostawy i wyszukują po danych klienta lub adresie. | Z |
