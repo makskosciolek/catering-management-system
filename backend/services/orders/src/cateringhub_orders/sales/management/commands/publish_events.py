@@ -1,36 +1,14 @@
-import logging
-import time
+from cateringhub_core.messaging import ORDERS_STOCK_QUEUE
+from cateringhub_core.worker import EventWorkerCommand
 
-import pika
-from django.core.management.base import BaseCommand, CommandError
-from django.db import OperationalError, close_old_connections
-
-from ...publisher import connect, publish_one, setup_channel
-
-logger = logging.getLogger("cateringhub.orders")
+from ...events import apply_stock_result
+from ...models import OutboxEvent
 
 
-class Command(BaseCommand):
-    help = "Publikuje zapisane zdarzenia zamówień do RabbitMQ."
+class Command(EventWorkerCommand):
+    help = "Publikuje zdarzenia zamówień i opcjonalnie odbiera wyniki rezerwacji."
+    outbox_model = OutboxEvent
+    queue = ORDERS_STOCK_QUEUE
 
-    def add_arguments(self, parser):
-        parser.add_argument("--once", action="store_true", help="Opróżnia bieżący outbox i kończy.")
-
-    def handle(self, *args, **options):
-        while True:
-            try:
-                with connect() as connection:
-                    channel = setup_channel(connection)
-                    while True:
-                        close_old_connections()
-                        if not publish_one(channel):
-                            if options["once"]:
-                                return
-                            connection.sleep(1)
-            except (pika.exceptions.AMQPError, OperationalError) as exc:
-                if options["once"]:
-                    raise CommandError(
-                        f"Publikacja nie powiodła się: {type(exc).__name__}"
-                    ) from exc
-                logger.warning("publisher retry reason=%s", type(exc).__name__)
-                time.sleep(2)
+    def apply_event(self, event):
+        apply_stock_result(event)

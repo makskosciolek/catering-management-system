@@ -25,7 +25,7 @@ test('klient składa zamówienie, a menedżer znajduje je w swoim panelu', async
   await page.getByLabel('Telefon kontaktowy').fill('000 000 000')
   await page.getByRole('button', { name: 'Złóż zamówienie' }).click()
   await expect(page.getByText('Zamówienie zostało zapisane.')).toBeVisible()
-  await expect(page.getByText('Oczekuje na magazyn')).toBeVisible()
+  await expect(page.getByText('Składniki zarezerwowane')).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText(/69,80/).first()).toBeVisible()
   await page.reload()
   await expect(page.getByText(address)).toBeVisible()

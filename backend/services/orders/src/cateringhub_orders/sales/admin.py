@@ -32,6 +32,7 @@ class OrderAdmin(admin.ModelAdmin):
         "contact_phone",
         "note",
         "status",
+        "stock_attempt",
         "total",
         "created_at",
     )

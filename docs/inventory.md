@@ -14,11 +14,22 @@ mogą czytać i zapisywać dane. Menedżer ma dostęp do odczytu.
 | `POST ingredients/` | Dodaje składnik z jednostką `kg`, `l` lub `pcs` i opcjonalnym progiem minimalnym. |
 | `GET receipts/` | Zwraca historię przyjęć z pozycjami, od najnowszego. |
 | `POST receipts/` | Zapisuje dostawcę i pozycje przyjęcia oraz zwiększa stan składników w jednej transakcji. |
+| `GET recipes/{meal_id}/`, `PUT recipes/{meal_id}/` | Odczytuje lub zastępuje recepturę z ilościami na porcję. Identyfikator dania pochodzi z menu Zamówień. |
+| `GET reservations/`, `GET reservations/{order_id}/` | Pokazuje stan rezerwacji, brakujące składniki i brakujące receptury. |
+| `POST reservations/{order_id}/retry/` | Ponawia rezerwację po uzupełnieniu składników lub receptur. |
 
 Przy zapisaniu dostawy klient API przekazuje UUID w polu `id`. Pierwszy zapis
 zwraca `201`. Powtórzenie tych samych danych przez to samo konto zwraca `200`
 bez ponownego zwiększenia stanu. Użycie tego samego UUID z innymi danymi lub
 przez inne konto zwraca `409`.
+
+Zasoby odbierają `order.submitted` z RabbitMQ. Dla wszystkich dań z zamówienia
+sumują składniki z receptur i rezerwują zapas, gdy można przygotować całość.
+Potwierdzenie odbioru następuje po zapisaniu wyniku, identyfikatora zdarzenia
+i zdarzenia zwrotnego w jednej transakcji. Ponowne doręczenie nie zmienia
+rezerwacji. Zamówienia odbierają `stock.reserved` lub `stock.shortage` i
+pokazują klientowi aktualny wynik. Po przyjęciu dostawy lub zapisaniu brakującej
+receptury magazynier może ponowić rezerwację przez API.
 
 ## 2. Jak sprawdzić
 
@@ -38,12 +49,11 @@ Invoke-RestMethod "$auth/login/" -Method Post -WebSession $session -Headers $hea
 Invoke-RestMethod "$stock/ingredients/" -WebSession $session
 ```
 
-Pełny opis pól i odpowiedzi publikuje [OpenAPI Zasobów](http://localhost:5173/api/inventory/v1/docs/).
-Przy żądaniach `POST` przekaż ciasteczka z logowania i nagłówek `X-CSRFToken`.
+Pełny opis pól i odpowiedzi jest w [specyfikacji OpenAPI](api/inventory.openapi.yaml)
+i [Swagger UI](http://localhost:5173/api/inventory/v1/docs/). Przy żądaniach
+`POST` i `PUT` przekaż ciasteczka z logowania i nagłówek `X-CSRFToken`.
 
 ## 3. Co zostało
 
-1. Dodać receptury, rezerwacje i ponawianie po uzupełnieniu braków.
-2. Podłączyć odbiór zdarzeń Zamówień z RabbitMQ i przekazywanie wyniku rezerwacji.
-3. Dodać panel magazyniera i testy przeglądarkowe przepływu zamówienia.
-4. Rozliczać zużycie po przygotowaniu posiłków i wyliczać plan zapotrzebowania.
+1. Dodać panel magazyniera i testy przeglądarkowe obsługi magazynu.
+2. Rozliczać zużycie po przygotowaniu posiłków i wyliczać plan zapotrzebowania.

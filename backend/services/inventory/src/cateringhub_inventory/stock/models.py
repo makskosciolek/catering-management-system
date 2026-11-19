@@ -64,3 +64,74 @@ class ReceiptLine(models.Model):
             ),
             models.UniqueConstraint(fields=("receipt", "ingredient"), name="receipt_ingredient"),
         ]
+
+
+class Recipe(models.Model):
+    meal_id = models.UUIDField(primary_key=True)
+
+
+class RecipeLine(models.Model):
+    recipe = models.ForeignKey(Recipe, related_name="lines", on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.PROTECT)
+    quantity = models.DecimalField(**QUANTITY_PRECISION)
+
+    class Meta:
+        ordering = ("ingredient__name",)
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantity__gt=0), name="recipeline_quantity_positive"
+            ),
+            models.UniqueConstraint(fields=("recipe", "ingredient"), name="recipe_ingredient"),
+        ]
+
+
+class Reservation(models.Model):
+    class Status(models.TextChoices):
+        RESERVED = "reserved", "Zarezerwowano"
+        SHORTAGE = "shortage", "Brak"
+
+    order_id = models.UUIDField(primary_key=True)
+    delivery_date = models.DateField()
+    requested_items = models.JSONField()
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.SHORTAGE)
+    shortages = models.JSONField(default=list)
+    missing_recipes = models.JSONField(default=list)
+    attempt = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at", "-order_id")
+
+
+class ReservationLine(models.Model):
+    reservation = models.ForeignKey(Reservation, related_name="lines", on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.PROTECT)
+    quantity = models.DecimalField(**QUANTITY_PRECISION)
+
+    class Meta:
+        ordering = ("ingredient__name",)
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(quantity__gt=0), name="reservationline_quantity_positive"
+            ),
+            models.UniqueConstraint(
+                fields=("reservation", "ingredient"), name="reservation_ingredient"
+            ),
+        ]
+
+
+class ProcessedEvent(models.Model):
+    id = models.UUIDField(primary_key=True, editable=False)
+    received_at = models.DateTimeField(auto_now_add=True)
+
+
+class OutboxEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    event_type = models.CharField(max_length=100)
+    order_id = models.UUIDField()
+    payload = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("created_at",)

@@ -46,7 +46,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = jwt_settings()
 SPECTACULAR_SETTINGS = {
     "TITLE": "CateringHub: zasoby",
-    "DESCRIPTION": "Ewidencja składników, przyjęcia dostaw i stany magazynowe SmakBox.",
+    "DESCRIPTION": "Składniki, przyjęcia dostaw, receptury i rezerwacje SmakBox.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_DIST": "SIDECAR",

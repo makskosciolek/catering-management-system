@@ -10,12 +10,12 @@ try {
     $env:UV_CACHE_DIR = Join-Path $taskRoot '.cache/uv'
     uv sync --project backend --all-packages --locked
     if ($LASTEXITCODE -ne 0) { throw 'Instalacja zależności Pythona nie powiodła się.' }
-    uv run --project backend --env-file .env --package cateringhub-orders python backend/services/orders/manage.py migrate
-    if ($LASTEXITCODE -ne 0) { throw 'Migracje Zamówień nie powiodły się.' }
-    uv run --project backend --env-file .env --package cateringhub-inventory python backend/services/inventory/manage.py migrate
-    if ($LASTEXITCODE -ne 0) { throw 'Migracje Zasobów nie powiodły się.' }
-    uv run --project backend --env-file .env --package cateringhub-orders python backend/services/orders/manage.py seed_demo
-    if ($LASTEXITCODE -ne 0) { throw 'Przygotowanie danych nie powiodło się.' }
+    foreach ($taskService in @('orders', 'inventory')) {
+        foreach ($taskCommand in @('migrate', 'seed_demo')) {
+            uv run --project backend --locked --no-sync --env-file .env --package "cateringhub-$taskService" python "backend/services/$taskService/manage.py" $taskCommand
+            if ($LASTEXITCODE -ne 0) { throw "Polecenie $taskCommand nie powiodło się ($taskService)." }
+        }
+    }
     npm.cmd --prefix frontend ci --no-audit --no-fund
     if ($LASTEXITCODE -ne 0) { throw 'Instalacja frontendu nie powiodła się.' }
 } finally { Pop-Location }

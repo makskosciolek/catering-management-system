@@ -8,9 +8,6 @@ New-Item -ItemType Directory -Path $taskLogDir -Force | Out-Null
 $env:UV_CACHE_DIR = Join-Path $taskRoot '.cache/uv'
 $taskUv = (Get-Command uv -ErrorAction Stop).Source
 $taskNode = (Get-Command node -ErrorAction Stop).Source
-$taskDjangoArgs = @('run', '--project', 'backend', '--locked', '--env-file', '.env')
-$taskOrdersArgs = $taskDjangoArgs + @('--package', 'cateringhub-orders', 'python', 'backend/services/orders/manage.py')
-$taskInventoryArgs = $taskDjangoArgs + @('--package', 'cateringhub-inventory', 'python', 'backend/services/inventory/manage.py')
 $taskProcesses = @()
 function Start-DevProcess($taskName, $taskExecutable, $taskArguments) {
     $taskOptions = @{
@@ -25,9 +22,14 @@ function Start-DevProcess($taskName, $taskExecutable, $taskArguments) {
     Start-Process @taskOptions
 }
 try {
-    $taskProcesses += Start-DevProcess 'api' $taskUv ($taskOrdersArgs + @('runserver', '127.0.0.1:8001'))
-    $taskProcesses += Start-DevProcess 'publisher' $taskUv ($taskOrdersArgs + @('publish_events'))
-    $taskProcesses += Start-DevProcess 'inventory' $taskUv ($taskInventoryArgs + @('runserver', '127.0.0.1:8002'))
+    $taskServicePorts = [ordered]@{ orders = 8001; inventory = 8002 }
+    foreach ($taskService in $taskServicePorts.Keys) {
+        $taskAddress = "127.0.0.1:$($taskServicePorts[$taskService])"
+        $taskDjangoArgs = @('run', '--project', 'backend', '--locked', '--no-sync', '--env-file', '.env',
+            '--package', "cateringhub-$taskService", 'python', "backend/services/$taskService/manage.py")
+        $taskProcesses += Start-DevProcess "$taskService-api" $taskUv ($taskDjangoArgs + @('runserver', $taskAddress))
+        $taskProcesses += Start-DevProcess "$taskService-events" $taskUv ($taskDjangoArgs + @('publish_events', '--consume'))
+    }
     $taskProcesses += Start-DevProcess 'web' $taskNode @(
         'frontend/node_modules/vite/bin/vite.js', 'frontend', '--host', '127.0.0.1',
         '--port', '5173', '--strictPort')

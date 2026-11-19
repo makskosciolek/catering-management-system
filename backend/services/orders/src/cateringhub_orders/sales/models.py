@@ -36,6 +36,8 @@ class Meal(models.Model):
 class Order(models.Model):
     class Status(models.TextChoices):
         SUBMITTED = "submitted", "Oczekuje na magazyn"
+        STOCK_RESERVED = "stock_reserved", "Składniki zarezerwowane"
+        STOCK_SHORTAGE = "stock_shortage", "Brak składników lub receptury"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -44,6 +46,7 @@ class Order(models.Model):
     contact_phone = models.CharField("telefon kontaktowy", max_length=30)
     note = models.CharField("uwagi", max_length=500, blank=True)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.SUBMITTED)
+    stock_attempt = models.PositiveIntegerField(default=0)
     total = models.DecimalField(max_digits=16, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -81,3 +84,8 @@ class OutboxEvent(models.Model):
 
     class Meta:
         ordering = ("created_at",)
+
+
+class ProcessedEvent(models.Model):
+    id = models.UUIDField(primary_key=True, editable=False)
+    received_at = models.DateTimeField(auto_now_add=True)

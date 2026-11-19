@@ -330,9 +330,11 @@ export interface components {
         RoleEnum: "customer" | "warehouse" | "kitchen" | "driver" | "manager" | "admin";
         /**
          * @description * `submitted` - Oczekuje na magazyn
+         *     * `stock_reserved` - Składniki zarezerwowane
+         *     * `stock_shortage` - Brak składników lub receptury
          * @enum {string}
          */
-        StatusEnum: "submitted";
+        StatusEnum: "submitted" | "stock_reserved" | "stock_shortage";
         User: {
             /** Format: uuid */
             readonly id: string;

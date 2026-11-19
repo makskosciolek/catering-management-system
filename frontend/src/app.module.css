@@ -903,6 +903,20 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
+.status[data-tone='ok'] {
+  color: #265440;
+  background: #e3efe4;
+}
+.status[data-tone='ok'] > span {
+  background: #397557;
+}
+.status[data-tone='warning'] {
+  color: #812b2b;
+  background: #fae9e5;
+}
+.status[data-tone='warning'] > span {
+  background: #aa4343;
+}
 .pagination {
   display: flex;
   justify-content: space-between;

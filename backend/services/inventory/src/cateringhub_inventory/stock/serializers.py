@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import QUANTITY_PRECISION, Ingredient, Receipt
+from .models import QUANTITY_PRECISION, Ingredient, Receipt, Recipe, Reservation
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -32,15 +32,18 @@ class QuantityLineInput(serializers.Serializer):
     quantity = serializers.DecimalField(min_value=Decimal("0.001"), **QUANTITY_PRECISION)
 
 
-class ReceiptInput(serializers.Serializer):
-    id = serializers.UUIDField()
-    supplier = serializers.CharField(max_length=150)
+class IngredientLinesInput(serializers.Serializer):
     lines = QuantityLineInput(many=True, allow_empty=False, max_length=50)
 
     def validate_lines(self, lines):
         if len({line["ingredient_id"] for line in lines}) != len(lines):
             raise serializers.ValidationError("Każdy składnik może wystąpić tylko raz.")
         return lines
+
+
+class ReceiptInput(IngredientLinesInput):
+    id = serializers.UUIDField()
+    supplier = serializers.CharField(max_length=150)
 
 
 class QuantityLineSerializer(serializers.Serializer):
@@ -58,4 +61,42 @@ class ReceiptSerializer(serializers.ModelSerializer):
     class Meta:
         model = Receipt
         fields = ("id", "supplier", "received_at", "lines")
+        read_only_fields = fields
+
+
+class RecipeSerializer(serializers.ModelSerializer):
+    lines = QuantityLineSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Recipe
+        fields = ("meal_id", "lines")
+        read_only_fields = fields
+
+
+class ShortageSerializer(serializers.Serializer):
+    ingredient_id = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    unit = serializers.ChoiceField(choices=Ingredient.Unit.choices, read_only=True)
+    needed = serializers.CharField(read_only=True)
+    available = serializers.CharField(read_only=True)
+    missing = serializers.CharField(read_only=True)
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+    lines = QuantityLineSerializer(many=True, read_only=True)
+    shortages = ShortageSerializer(many=True, read_only=True)
+    missing_recipes = serializers.ListField(child=serializers.UUIDField(), read_only=True)
+
+    class Meta:
+        model = Reservation
+        fields = (
+            "order_id",
+            "delivery_date",
+            "status",
+            "attempt",
+            "updated_at",
+            "lines",
+            "shortages",
+            "missing_recipes",
+        )
         read_only_fields = fields

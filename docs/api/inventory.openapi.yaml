@@ -1,0 +1,562 @@
+openapi: 3.0.3
+info:
+  title: 'CateringHub: zasoby'
+  version: 0.1.0
+  description: Składniki, przyjęcia dostaw, receptury i rezerwacje SmakBox.
+paths:
+  /api/inventory/v1/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/inventory/v1/ingredients/:
+    get:
+      operationId: ingredients_list
+      tags:
+      - ingredients
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ingredient'
+          description: ''
+    post:
+      operationId: ingredients_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      tags:
+      - ingredients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Ingredient'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+  /api/inventory/v1/receipts/:
+    get:
+      operationId: receipts_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - receipts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReceiptList'
+          description: ''
+    post:
+      operationId: receipts_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      tags:
+      - receipts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReceiptInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+          description: ''
+        '400':
+          description: Nieprawidłowe dane przyjęcia.
+        '409':
+          description: Identyfikator przyjęcia użyty z innymi danymi.
+  /api/inventory/v1/recipes/{meal_id}/:
+    get:
+      operationId: recipes_retrieve
+      parameters:
+      - in: path
+        name: meal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recipes
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+    put:
+      operationId: recipes_update
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      - in: path
+        name: meal_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - recipes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientLinesInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IngredientLinesInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IngredientLinesInput'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+          description: ''
+  /api/inventory/v1/reservations/:
+    get:
+      operationId: reservations_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - reservations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReservationList'
+          description: ''
+  /api/inventory/v1/reservations/{order_id}/:
+    get:
+      operationId: reservations_retrieve
+      parameters:
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reservations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
+  /api/inventory/v1/reservations/{order_id}/retry/:
+    post:
+      operationId: reservations_retry_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - reservations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+          description: ''
+components:
+  schemas:
+    Health:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+      required:
+      - service
+      - status
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        unit:
+          $ref: '#/components/schemas/UnitEnum'
+        minimum:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+          default: '0.000'
+        on_hand:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+          readOnly: true
+        reserved:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+          readOnly: true
+        available:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+          readOnly: true
+        below_minimum:
+          type: boolean
+          readOnly: true
+      required:
+      - available
+      - below_minimum
+      - id
+      - name
+      - on_hand
+      - reserved
+      - unit
+    IngredientLinesInput:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantityLineInput'
+      required:
+      - lines
+    PaginatedReceiptList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Receipt'
+    PaginatedReservationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+    QuantityLine:
+      type: object
+      properties:
+        ingredient_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/UnitEnum'
+          readOnly: true
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+          readOnly: true
+      required:
+      - ingredient_id
+      - name
+      - quantity
+      - unit
+    QuantityLineInput:
+      type: object
+      properties:
+        ingredient_id:
+          type: string
+          format: uuid
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,9}(?:\.\d{0,3})?$
+      required:
+      - ingredient_id
+      - quantity
+    Receipt:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        supplier:
+          type: string
+          readOnly: true
+        received_at:
+          type: string
+          format: date-time
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantityLine'
+          readOnly: true
+      required:
+      - id
+      - lines
+      - received_at
+      - supplier
+    ReceiptInput:
+      type: object
+      properties:
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantityLineInput'
+        id:
+          type: string
+          format: uuid
+        supplier:
+          type: string
+          maxLength: 150
+      required:
+      - id
+      - lines
+      - supplier
+    Recipe:
+      type: object
+      properties:
+        meal_id:
+          type: string
+          format: uuid
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantityLine'
+          readOnly: true
+      required:
+      - lines
+      - meal_id
+    Reservation:
+      type: object
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          readOnly: true
+        delivery_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        attempt:
+          type: integer
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuantityLine'
+          readOnly: true
+        shortages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shortage'
+          readOnly: true
+        missing_recipes:
+          type: array
+          items:
+            type: string
+            format: uuid
+          readOnly: true
+      required:
+      - attempt
+      - delivery_date
+      - lines
+      - missing_recipes
+      - order_id
+      - shortages
+      - status
+      - updated_at
+    Shortage:
+      type: object
+      properties:
+        ingredient_id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/UnitEnum'
+          readOnly: true
+        needed:
+          type: string
+          readOnly: true
+        available:
+          type: string
+          readOnly: true
+        missing:
+          type: string
+          readOnly: true
+      required:
+      - available
+      - ingredient_id
+      - missing
+      - name
+      - needed
+      - unit
+    StatusEnum:
+      enum:
+      - reserved
+      - shortage
+      type: string
+      description: |-
+        * `reserved` - Zarezerwowano
+        * `shortage` - Brak
+    UnitEnum:
+      enum:
+      - kg
+      - l
+      - pcs
+      type: string
+      description: |-
+        * `kg` - kg
+        * `l` - l
+        * `pcs` - szt.
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: cateringhub_access

@@ -1,4 +1,4 @@
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Prefetch
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -7,18 +7,30 @@ from drf_spectacular.utils import (
     extend_schema_view,
     inline_serializer,
 )
-from rest_framework import mixins, serializers, status, viewsets
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework import generics, mixins, serializers, status, viewsets
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import Ingredient, Receipt, ReceiptLine
+from .models import (
+    Ingredient,
+    Receipt,
+    ReceiptLine,
+    Recipe,
+    RecipeLine,
+    Reservation,
+    ReservationLine,
+)
 from .serializers import (
+    IngredientLinesInput,
     IngredientSerializer,
     ReceiptInput,
     ReceiptSerializer,
+    RecipeSerializer,
+    ReservationSerializer,
 )
-from .services import record_receipt
+from .services import record_receipt, retry_reservation, save_recipe
 
 CSRF_HEADER = OpenApiParameter(
     name="X-CSRFToken",
@@ -72,3 +84,40 @@ class ReceiptViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         receipt = self.get_queryset().get(pk=receipt.pk)
         return Response(self.get_serializer(receipt).data, status=response_status)
+
+
+class RecipeView(generics.RetrieveAPIView):
+    queryset = Recipe.objects.prefetch_related(
+        Prefetch("lines", queryset=RecipeLine.objects.select_related("ingredient"))
+    )
+    serializer_class = RecipeSerializer
+    lookup_field = "meal_id"
+
+    @extend_schema(
+        parameters=[CSRF_HEADER], request=IngredientLinesInput, responses=RecipeSerializer
+    )
+    @transaction.atomic
+    def put(self, request, meal_id):
+        form = IngredientLinesInput(data=request.data)
+        form.is_valid(raise_exception=True)
+        recipe = save_recipe(meal_id, form.validated_data["lines"])
+        return Response(self.get_serializer(self.get_queryset().get(pk=recipe.pk)).data)
+
+
+class ReservationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Reservation.objects.prefetch_related(
+        Prefetch("lines", queryset=ReservationLine.objects.select_related("ingredient"))
+    )
+    serializer_class = ReservationSerializer
+    lookup_field = "order_id"
+    lookup_value_converter = "uuid"
+
+    @extend_schema(parameters=[CSRF_HEADER], request=None, responses=ReservationSerializer)
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def retry(self, request, order_id):
+        try:
+            reservation = retry_reservation(order_id)
+        except Reservation.DoesNotExist as exc:
+            raise NotFound() from exc
+        return Response(self.get_serializer(self.get_queryset().get(pk=reservation.pk)).data)

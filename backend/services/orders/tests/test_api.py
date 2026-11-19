@@ -1,11 +1,13 @@
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import Mock
+from uuid import uuid4
 
 import pika
 import pytest
-from cateringhub_orders.sales.models import Meal, Order, OutboxEvent
-from cateringhub_orders.sales.publisher import publish_one
+from cateringhub_core.messaging import STOCK_RESERVED, STOCK_SHORTAGE, Event, publish_one
+from cateringhub_orders.sales.events import apply_stock_result
+from cateringhub_orders.sales.models import Meal, Order, OutboxEvent, ProcessedEvent
 from conftest import BASE, PASSWORD, csrf, login
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -120,9 +122,23 @@ def test_publish_failure_preserves_pending_event(api, customer, meal):
     channel = Mock()
     channel.basic_publish.side_effect = pika.exceptions.UnroutableError([])
     with pytest.raises(pika.exceptions.UnroutableError):
-        publish_one(channel)
+        publish_one(channel, OutboxEvent)
     assert OutboxEvent.objects.get().published_at is None
     channel.basic_publish.side_effect = None
-    assert publish_one(channel) is True
+    assert publish_one(channel, OutboxEvent) is True
     assert OutboxEvent.objects.get().published_at is not None
-    assert publish_one(channel) is False
+    assert publish_one(channel, OutboxEvent) is False
+
+
+def test_late_stock_result_does_not_overwrite_reservation(api, customer, meal):
+    login(api, customer)
+    order = Order.objects.get(pk=submit(api, order_data(meal)).json()["id"])
+    shortage = Event(uuid4(), STOCK_SHORTAGE, order.id, {"attempt": 1})
+    reserved = Event(uuid4(), STOCK_RESERVED, order.id, {"attempt": 2})
+    apply_stock_result(reserved)
+    apply_stock_result(shortage)
+    apply_stock_result(reserved)
+    order.refresh_from_db()
+    assert order.status == Order.Status.STOCK_RESERVED
+    assert order.stock_attempt == 2
+    assert ProcessedEvent.objects.count() == 2

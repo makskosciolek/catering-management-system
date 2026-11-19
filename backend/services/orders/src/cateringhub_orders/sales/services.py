@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from cateringhub_core.messaging import ORDER_SUBMITTED
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
@@ -36,7 +37,7 @@ def create_order(*, customer, items, **delivery):
         ]
     )
     OutboxEvent.objects.create(
-        event_type="order.submitted",
+        event_type=ORDER_SUBMITTED,
         order=order,
         payload={
             "delivery_date": order.delivery_date.isoformat(),

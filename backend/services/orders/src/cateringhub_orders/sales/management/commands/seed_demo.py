@@ -1,7 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
-from uuid import NAMESPACE_URL, uuid5
 
+from cateringhub_core.demo import demo_id
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -68,10 +68,6 @@ MEALS = (
         True,
     ),
 )
-
-
-def demo_id(name):
-    return uuid5(NAMESPACE_URL, f"cateringhub/demo/{name}")
 
 
 class Command(BaseCommand):

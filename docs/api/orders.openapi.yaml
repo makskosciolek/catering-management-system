@@ -585,8 +585,13 @@ components:
     StatusEnum:
       enum:
       - submitted
+      - stock_reserved
+      - stock_shortage
       type: string
-      description: '* `submitted` - Oczekuje na magazyn'
+      description: |-
+        * `submitted` - Oczekuje na magazyn
+        * `stock_reserved` - Składniki zarezerwowane
+        * `stock_shortage` - Brak składników lub receptury
     User:
       type: object
       properties:

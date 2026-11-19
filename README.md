@@ -18,7 +18,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Mikroserwis | Zakres | Stan w tej wersji |
 |---|---|---|
 | Zamówienia (`orders`) | Konta, menu, koszyk, zamówienia, historia klienta i statystyki sprzedaży | Działają obsługa zamówień, publikacja zdarzeń oraz liczniki zamówień i porcji. Wartość sprzedaży i popularność dań są planowane. |
-| Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | API obsługuje ewidencję składników, przyjęcia i odczyt stanów. |
+| Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | API obsługuje składniki, przyjęcia, receptury i zapasy. Serwis rezerwuje składniki na podstawie zdarzeń zamówień. |
 | Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Planowana jest obsługa kuchni i kierowców oraz zestawienia dostaw doręczonych, nieudanych i terminowych. |
 
 ### Role użytkowników
@@ -26,7 +26,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Rola | Zakres dostępu |
 |---|---|
 | Klient | Menu, składanie i przegląd własnych zamówień, edycja profilu |
-| Magazynier | Dodawanie składników, zapis przyjęć i odczyt stanów przez API |
+| Magazynier | Składniki, przyjęcia, receptury, odczyt stanów i ponawianie rezerwacji przez API |
 | Pracownik kuchni | Lista produkcyjna, zmiana statusu przygotowania zamówień |
 | Kierowca | Przydzielone dostawy, zmiana statusu dostawy |
 | Menedżer | Przegląda zamówienia, podsumowanie i dane Zasobów. Docelowo także koordynuje dostawy, personel i planowanie. |
@@ -62,13 +62,13 @@ pwsh -File scripts/dev.ps1
 
 Pierwsze polecenie przygotowuje lokalny plik `.env`, uruchamia PostgreSQL
 i RabbitMQ, instaluje zależności, stosuje migracje i ładuje fikcyjne dane.
-Drugie uruchamia API Zamówień i Zasobów, wydawcę zdarzeń Zamówień oraz Vite. Otwórz
+Drugie uruchamia API i proces obsługi zdarzeń obu serwisów oraz Vite. Otwórz
 [CateringHub](http://localhost:5173/). Na ekranie logowania przyciski
 **Dane klienta** i **Dane menedżera** uzupełniają lokalne dane demonstracyjne.
 
 Złóż zamówienie jako klient, a następnie odszukaj je w panelu menedżera po
-adresie e-mail. Status „Oczekuje na magazyn” oznacza, że zamówienie zapisano
-w serwisie Zamówień i czeka ono na obsługę przez magazyn.
+adresie e-mail. Nowe zamówienie czeka na wynik z Zasobów. Szczegóły zamówienia
+pokazują po chwili „Składniki zarezerwowane” albo „Brak składników lub receptury”.
 
 [Opis API Zamówień](http://localhost:5173/api/orders/v1/docs/),
 [opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/) i
@@ -121,7 +121,7 @@ cateringhub/
 │   ├── packages/core/ # ustawienia bazy i uwierzytelnianie współdzielone przez API
 │   └── services/
 │       ├── orders/    # konta, menu, zamówienia
-│       └── inventory/ # składniki, przyjęcia i dostępny zapas
+│       └── inventory/ # składniki, przyjęcia, receptury i rezerwacje
 ├── frontend/       # aplikacja kliencka i panel pracowników (React + TypeScript)
 ├── infra/          # skrypty inicjalizujące bazy danych
 ├── scripts/        # skrypty uruchamiające środowisko lokalne
@@ -152,7 +152,8 @@ cateringhub/
 - [x] Aplikacja webowa: menu, koszyk, logowanie, historia i panel zamówień
 - [x] Dokumentacja implementacji, testy i poprawki (rozdziały 8–10)
 - [x] Serwis Zasobów: ewidencja składników, przyjęcia dostaw i odczyt stanów przez API
-- [ ] Receptury, rezerwacje, panel magazynu i serwis Realizacji
+- [x] Receptury, rezerwacje i wymiana zdarzeń między Zasobami i Zamówieniami
+- [ ] Panel magazynu i serwis Realizacji
 - [ ] Wartość sprzedaży i popularność dań w Zamówieniach
 - [ ] Wskaźniki dostaw w Realizacji i planowanie zapotrzebowania w Zasobach
 - [ ] Wdrożenie

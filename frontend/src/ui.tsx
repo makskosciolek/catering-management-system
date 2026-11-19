@@ -118,11 +118,16 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
 }
 
 export function StatusBadge({ status }: { status: Order['status'] }) {
-  const labels: Record<Order['status'], string> = { submitted: 'Oczekuje na magazyn' }
+  const states: Record<Order['status'], { label: string; tone: string }> = {
+    submitted: { label: 'Oczekuje na magazyn', tone: 'pending' },
+    stock_reserved: { label: 'Składniki zarezerwowane', tone: 'ok' },
+    stock_shortage: { label: 'Brak składników lub receptury', tone: 'warning' },
+  }
+  const { label, tone } = states[status]
   return (
-    <span className={styles.status}>
-      <span />
-      {labels[status]}
+    <span className={styles.status} data-tone={tone}>
+      <span aria-hidden="true" />
+      {label}
     </span>
   )
 }
