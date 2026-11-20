@@ -118,6 +118,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+  /api/orders/v1/auth/session/:
+    get:
+      operationId: auth_session_retrieve
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionIdentity'
+          description: ''
   /api/orders/v1/health/:
     get:
       operationId: health_retrieve
@@ -145,7 +159,6 @@ paths:
       tags:
       - menu
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -170,7 +183,6 @@ paths:
       tags:
       - menu
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -266,6 +278,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
           description: ''
+  /api/orders/v1/orders/{id}/cancel/:
+    post:
+      operationId: orders_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this order.
+        required: true
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+  /api/orders/v1/orders/delivery-window/:
+    get:
+      operationId: orders_delivery_window_retrieve
+      tags:
+      - orders
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryWindow'
+          description: ''
   /api/orders/v1/orders/summary/:
     get:
       operationId: orders_summary_retrieve
@@ -332,6 +380,17 @@ components:
           type: string
       required:
       - csrfToken
+    DeliveryWindow:
+      type: object
+      properties:
+        earliest_delivery_date:
+          type: string
+          format: date
+        cutoff_hour:
+          type: integer
+      required:
+      - cutoff_hour
+      - earliest_delivery_date
     Health:
       type: object
       properties:
@@ -596,16 +655,29 @@ components:
         * `driver` - Kierowca
         * `manager` - Menedżer
         * `admin` - Administrator
+    SessionIdentity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+      required:
+      - id
+      - role
     StatusEnum:
       enum:
       - submitted
       - stock_reserved
       - stock_shortage
+      - cancelled
       type: string
       description: |-
         * `submitted` - Oczekuje na magazyn
         * `stock_reserved` - Składniki zarezerwowane
         * `stock_shortage` - Brak składników lub receptury
+        * `cancelled` - Anulowane
     User:
       type: object
       properties:

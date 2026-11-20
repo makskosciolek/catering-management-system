@@ -1,16 +1,27 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import Mock
+from threading import Barrier
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pika
 import pytest
-from cateringhub_core.messaging import STOCK_RESERVED, STOCK_SHORTAGE, Event, publish_one
+from cateringhub_core.messaging import (
+    ORDER_CANCELLED,
+    STOCK_RESERVED,
+    STOCK_SHORTAGE,
+    Event,
+    publish_one,
+    replay_order,
+)
 from cateringhub_orders.sales.events import apply_stock_result
 from cateringhub_orders.sales.models import Meal, Order, OutboxEvent, ProcessedEvent
 from cateringhub_orders.sales.rules import earliest_delivery_date
+from cateringhub_orders.sales.services import create_order
 from conftest import BASE, PASSWORD, csrf, login
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
@@ -201,6 +212,109 @@ def test_repeated_submission_returns_existing_order(api, customer, meal):
     login(api, other)
     assert submit(api, data).status_code == 409
     assert Order.objects.count() == 1
+
+
+def test_saved_order_can_be_recovered_after_delivery_cutoff(api, customer, meal):
+    login(api, customer)
+    data = {**order_data(meal), "id": str(uuid4())}
+    delivery_date = date.fromisoformat(data["delivery_date"])
+    with patch(
+        "cateringhub_orders.sales.services.earliest_delivery_date", return_value=delivery_date
+    ):
+        first = submit(api, data)
+    assert first.status_code == 201
+    with patch(
+        "cateringhub_orders.sales.services.earliest_delivery_date",
+        return_value=delivery_date + timedelta(days=1),
+    ):
+        assert submit(api, data).status_code == 200
+        assert submit(api, {**data, "id": str(uuid4())}).status_code == 400
+    assert Order.objects.count() == OutboxEvent.objects.count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_simultaneous_submissions_create_one_order(customer, meal):
+    order_id = uuid4()
+    ready = Barrier(2, timeout=10)
+
+    def submit_order():
+        try:
+            ready.wait()
+            order, created = create_order(
+                id=order_id,
+                customer=customer,
+                items=[{"meal_id": meal.id, "quantity": 2}],
+                delivery_date=earliest_delivery_date(),
+                delivery_address="Kraków",
+                contact_phone="600 700 800",
+            )
+            return order.pk, created
+        finally:
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = [pool.submit(submit_order) for _ in range(2)]
+        assert set(result.result(timeout=20) for result in results) == {
+            (order_id, True),
+            (order_id, False),
+        }
+    assert Order.objects.count() == OutboxEvent.objects.count() == 1
+
+
+def test_order_owner_can_cancel_once_and_late_reservation_cannot_restore_it(api, customer, meal):
+    login(api, customer)
+    order_id = submit(api, order_data(meal)).json()["id"]
+    path = f"{BASE}/orders/{order_id}/cancel/"
+    other = get_user_model().objects.create_user("other@example.com", PASSWORD)
+    login(api, other)
+    assert api.post(path, HTTP_X_CSRFTOKEN=csrf(api)).status_code == 404
+    login(api, customer)
+    for _ in range(2):
+        response = api.post(path, HTTP_X_CSRFTOKEN=csrf(api))
+        assert response.status_code == 200
+        assert response.json()["status"] == "cancelled"
+    order = Order.objects.get(pk=order_id)
+    apply_stock_result(Event(uuid4(), STOCK_RESERVED, order.pk, {"attempt": 1}))
+    order.refresh_from_db()
+    assert order.status == Order.Status.CANCELLED
+    assert OutboxEvent.objects.filter(event_type=ORDER_CANCELLED).count() == 1
+
+
+def test_unroutable_event_is_deferred_and_replay_preserves_original_message_id(api, customer, meal):
+    login(api, customer)
+    first = OutboxEvent.objects.get(order_id=submit(api, order_data(meal)).json()["id"])
+    second = OutboxEvent.objects.get(order_id=submit(api, order_data(meal)).json()["id"])
+    channel = Mock()
+    channel.basic_publish.side_effect = pika.exceptions.UnroutableError([])
+    assert publish_one(channel, OutboxEvent, defer_unroutable=True)
+    first.refresh_from_db()
+    assert first.next_publish_at > timezone.now()
+    assert first.published_at is None
+
+    channel.basic_publish.side_effect = None
+    assert publish_one(channel, OutboxEvent, defer_unroutable=True)
+    assert channel.basic_publish.call_args.kwargs["properties"].message_id == str(second.pk)
+    assert not publish_one(channel, OutboxEvent, defer_unroutable=True)
+    assert replay_order(channel, OutboxEvent, first.order_id) == 1
+    assert channel.basic_publish.call_args.kwargs["properties"].message_id == str(first.pk)
+    first.refresh_from_db()
+    assert first.next_publish_at is None
+    assert first.published_at is not None
+
+
+def test_identity_is_checked_against_current_account_and_cutoff_is_public(api, customer, settings):
+    login(api, customer)
+    identity = api.get(f"{BASE}/auth/session/")
+    assert identity.json() == {"id": str(customer.pk), "role": "customer"}
+    customer.is_active = False
+    customer.save(update_fields=["is_active"])
+    assert api.get(f"{BASE}/auth/session/").status_code == 401
+    settings.ORDER_CUTOFF_HOUR = 11
+    window = api.get(f"{BASE}/orders/delivery-window/")
+    assert window.json() == {
+        "earliest_delivery_date": earliest_delivery_date().isoformat(),
+        "cutoff_hour": 11,
+    }
 
 
 def test_email_is_normalized_for_accounts_saved_outside_registration(api):

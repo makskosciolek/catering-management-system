@@ -5,8 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api/orders': 'http://127.0.0.1:8001',
-      '/api/inventory': 'http://127.0.0.1:8002',
+      '/api/orders': process.env.CATERINGHUB_ORDERS_ORIGIN ?? 'http://127.0.0.1:8001',
+      '/api/inventory': process.env.CATERINGHUB_INVENTORY_ORIGIN ?? 'http://127.0.0.1:8002',
     },
   },
 })

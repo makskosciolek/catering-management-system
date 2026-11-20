@@ -78,7 +78,7 @@ i profilu; pozostałe opisują stan docelowy.
 
 ## 5.4 Wymagania funkcjonalne
 
-Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych etapach.
+Status **Z** oznacza funkcję działającą w prototypie, a **P** funkcję planowaną.
 
 ### 5.4.1 Konta i uwierzytelnianie
 
@@ -107,16 +107,16 @@ Status: **Z** – zrealizowane w raporcie 1, **P** – planowane w kolejnych eta
 | FR-11 | Historia zamówień klienta | Klient widzi listę i szczegóły wyłącznie własnych zamówień. | Z |
 | FR-12 | Panel zamówień | Menedżer i administrator widzą wszystkie zamówienia, filtrują je po dacie dostawy i wyszukują po danych klienta lub adresie. | Z |
 | FR-13 | Podsumowanie dnia | System podaje liczbę zamówień i łączną liczbę porcji dla wybranej daty dostawy. | Z |
-| FR-14 | Zdarzenie o zamówieniu | Zamówienia publikują w RabbitMQ `order.submitted`. Zdarzenie zawiera identyfikatory dań, liczbę porcji i datę dostawy potrzebne Zasobom. | Z (publikacja). Odbiór przez Zasoby jest planowany. |
-| FR-15 | Anulowanie i zmiana zamówienia | Klient może anulować lub zmienić zamówienie do ustalonej godziny dnia poprzedzającego dostawę. | P |
+| FR-14 | Zdarzenie o zamówieniu | Zamówienia publikują w RabbitMQ `order.submitted`. Zdarzenie zawiera identyfikatory dań, liczbę porcji i datę dostawy potrzebne Zasobom. | Z (publikacja i odbiór) |
+| FR-15 | Anulowanie i zmiana zamówienia | Klient może anulować lub zmienić zamówienie do ustalonej godziny dnia poprzedzającego dostawę. | Z (anulowanie), P (zmiana) |
 
 ### 5.4.4 Magazyn i planowanie zasobów
 
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
-| FR-16 | Ewidencja składników | Magazynier wyświetla, dodaje, edytuje i usuwa składniki oraz ich stany. | P |
-| FR-17 | Receptury | Każde danie ma przypisaną listę składników z ilością na porcję. | P |
-| FR-18 | Rezerwacja składników | Po zdarzeniu `order.submitted` system rezerwuje składniki i potwierdza lub odrzuca zamówienie z powodu braków. | P |
+| FR-16 | Ewidencja składników | Magazynier wyświetla, dodaje, edytuje i usuwa składniki oraz ich stany. | Z (odczyt i dodawanie przez API), P (edycja i usuwanie) |
+| FR-17 | Receptury | Dla dania można zapisać listę składników z ilością na porcję. | Z (API) |
+| FR-18 | Rezerwacja składników | Po zdarzeniu `order.submitted` system rezerwuje składniki i przekazuje Zamówieniom wynik albo informację o brakach. | Z |
 | FR-19 | Zapotrzebowanie na składniki | Moduł planowania w Zasobach przelicza zamówione i prognozowane porcje na ilości składników według receptur. | P |
 
 ### 5.4.5 Planowanie operacyjne i dostawy

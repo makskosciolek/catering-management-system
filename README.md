@@ -69,6 +69,9 @@ Drugie uruchamia API i proces obsługi zdarzeń obu serwisów oraz Vite. Otwórz
 Złóż zamówienie jako klient, a następnie odszukaj je w panelu menedżera po
 adresie e-mail. Nowe zamówienie czeka na wynik z Zasobów. Szczegóły zamówienia
 pokazują po chwili „Składniki zarezerwowane” albo „Brak składników lub receptury”.
+Do godziny granicznej klient może anulować zamówienie w jego szczegółach.
+Zasoby zwalniają wtedy zarezerwowane składniki. Jeśli odpowiedź po złożeniu
+zamówienia zaginie, koszyk pozwala sprawdzić zapis przed kolejną próbą.
 
 [Opis API Zamówień](http://localhost:5173/api/orders/v1/docs/),
 [opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/) i
@@ -78,6 +81,9 @@ i magazyniera. Zobacz [instrukcję obsługi API Zasobów](docs/inventory.md).
 
 Ctrl+C zatrzymuje procesy aplikacji. Logi znajdziesz w `.artifacts/dev/`.
 Jeśli chcesz zatrzymać też PostgreSQL i RabbitMQ, użyj `docker compose stop`.
+Przy aktualizacji istniejącego środowiska uruchom ponownie `scripts/setup.ps1`.
+Postępowanie ze starszym wolumenem brokera i ponawianie publikacji opisano w
+[instrukcji Zasobów](docs/inventory.md#4-odzyskiwanie-zdarzeń).
 
 Jeśli uruchamiasz kilka środowisk demonstracyjnych na jednym komputerze,
 użyj dla każdego oddzielnego projektu Compose. W jego `.env` ustaw unikalną nazwę
@@ -101,17 +107,18 @@ npm.cmd --prefix frontend run check
 npm.cmd --prefix frontend run build
 ```
 
-Testy przeglądarkowe wymagają uruchomionego `scripts/dev.ps1` w osobnym terminalu.
-Jeśli masz zainstalowany Chrome, ustaw `PW_BROWSER_CHANNEL` i uruchom testy:
+Testy przeglądarkowe można uruchomić na osobnych kontenerach i świeżych
+danych. Potrzebne są zainstalowane zależności projektu i działający Docker.
+Z katalogu repozytorium uruchom:
 
 ```powershell
-$env:PW_BROWSER_CHANNEL = 'chrome'
-npm.cmd --prefix frontend run test:e2e
+npm.cmd --prefix frontend exec -- playwright install chromium
+npm.cmd --prefix frontend run test:e2e:isolated
 ```
 
-Playwright może też użyć własnego Chromium. Zainstaluj je przez
-`npm.cmd --prefix frontend exec -- playwright install chromium` i uruchom
-testy z nieustawioną zmienną `PW_BROWSER_CHANNEL`.
+Zamiast instalować Chromium można wskazać zainstalowany Chrome przez
+`$env:PW_BROWSER_CHANNEL = 'chrome'`. Polecenie `node scripts/test-e2e.mjs --backend`
+dodaje testy backendu w tym samym środowisku. GitHub Actions używa tej wersji.
 
 ## Struktura repozytorium
 

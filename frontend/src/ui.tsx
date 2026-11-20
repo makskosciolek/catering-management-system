@@ -122,6 +122,7 @@ export function StatusBadge({ status }: { status: Order['status'] }) {
     submitted: { label: 'Oczekuje na magazyn', tone: 'pending' },
     stock_reserved: { label: 'Składniki zarezerwowane', tone: 'ok' },
     stock_shortage: { label: 'Brak składników lub receptury', tone: 'warning' },
+    cancelled: { label: 'Anulowane', tone: 'warning' },
   }
   const { label, tone } = states[status]
   return (

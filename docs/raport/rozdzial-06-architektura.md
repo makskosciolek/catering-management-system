@@ -182,11 +182,11 @@ flowchart TB
 | Realizacja (`fulfillment`) | Lista produkcyjna, przydział i statusy dostaw oraz wskaźniki dostaw | F-05, F-06, F-09 (dostawy) | REST API, zdarzenia |
 | Szyna zdarzeń | Przekazywanie zdarzeń biznesowych między serwisami | integracja | AMQP |
 
-W obecnym `main` działają aplikacja webowa i Zamówienia z publikacją zdarzeń
-oraz licznikami zamówień i porcji. Infrastruktura tworzy bazy dla Zasobów
-i Realizacji, a wydawca deklaruje kolejkę magazynu. W planie są przyjęcia,
-receptury, rezerwacje i wyliczanie zapotrzebowania, a także obsługa kuchni,
-dostaw i ich wskaźników. Zamówienia mają zostać rozszerzone o wartość sprzedaży
+W prototypie działają aplikacja webowa, Zamówienia i API Zasobów. Zamówienia
+prowadzą konta, zamówienia i liczniki. Zasoby obsługują przyjęcia, receptury
+i rezerwacje, a wynik rezerwacji wraca do Zamówień przez RabbitMQ.
+Obsługa kuchni, dostaw i ich wskaźników oraz planowanie zapotrzebowania
+są planowane. Zamówienia mają zostać rozszerzone o wartość sprzedaży
 i popularność dań.
 
 ### 6.3.3 Poziom technologiczny
@@ -239,7 +239,7 @@ flowchart TB
 |---|---|
 | Interfejs | `urls.py`, `accounts/views.py`, `sales/views.py`, `accounts/authentication.py` |
 | Kontrakt | `accounts/serializers.py`, `sales/serializers.py` |
-| Logika biznesowa | `sales/services.py`, `sales/publisher.py` |
+| Logika biznesowa i proces zdarzeń | `sales/services.py`, `sales/events.py`, wspólne `cateringhub_core/messaging.py` i `cateringhub_core/worker.py` |
 | Dostęp do danych | `accounts/models.py`, `sales/models.py`, migracje |
 
 Zaletą jest czytelny podział odpowiedzialności i łatwe testowanie reguł
@@ -400,10 +400,11 @@ zdarzenie ma unikalny identyfikator, po którym odbiorca rozpoznaje duplikaty.
 
 | Zdarzenie | Publikuje | Odbiera | Status |
 |---|---|---|---|
-| `order.submitted` | Zamówienia | Zasoby | Publikacja działa na `main`. Odbiór jest planowany. |
-| `stock.reserved` | Zasoby | Zamówienia i Realizacja | Planowane |
-| `stock.shortage` | Zasoby | Zamówienia | Planowane |
-| `order.prepared` | Realizacja | Zamówienia, Zasoby | Planowane |
+| `order.submitted` | Zamówienia | Zasoby | Działa publikacja i odbiór |
+| `stock.reserved` | Zasoby | Zamówienia i Realizacja | Działa odbiór w Zamówieniach. Odbiór w Realizacji jest planowany. |
+| `stock.shortage` | Zasoby | Zamówienia | Działa publikacja i odbiór |
+| `order.cancelled` | Zamówienia | Zasoby | Działa publikacja i zwolnienie składników |
+| `order.prepared` | Realizacja | Zamówienia, Zasoby | Zasoby potrafią rozliczyć zużycie. Nadawca i odbiór w Zamówieniach są planowane. |
 | `delivery.assigned` | Realizacja | Zamówienia | Planowane |
 | `delivery.completed` | Realizacja | Zamówienia | Planowane |
 

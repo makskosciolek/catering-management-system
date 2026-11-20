@@ -61,6 +61,8 @@ LANGUAGE_CODE = "pl"
 TIME_ZONE = "Europe/Warsaw"
 # Godzina, do której przyjmowane są zamówienia z dostawą na następny dzień.
 ORDER_CUTOFF_HOUR = int(os.environ.get("ORDER_CUTOFF_HOUR", "18"))
+if not 0 <= ORDER_CUTOFF_HOUR <= 23:
+    raise ValueError("ORDER_CUTOFF_HOUR musi mieścić się w przedziale 0–23.")
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "/api/orders/static/"

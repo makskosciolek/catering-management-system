@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
-import { api } from './api/client'
+import { api, deliveryWindowKey } from './api/client'
 import { dateLabel, money, orderCode } from './format'
-import { isManagement, useSession } from './session'
+import { isManagement, orderDetailKey, ordersKey, useSession } from './session'
 import { ErrorBox, Icon, Loading, StatusBadge } from './ui'
 import styles from './app.module.css'
 
@@ -18,12 +18,12 @@ export function OrdersPage() {
   if (query) filters.set('search', query)
   if (date) filters.set('delivery_date', date)
   const orders = useQuery({
-    queryKey: ['orders', 'list', user?.id, query, date, page],
+    queryKey: [...ordersKey, 'list', user?.id, query, date, page],
     queryFn: () => api.orders(new URLSearchParams([...filters, ['page', String(page)]])),
     refetchInterval: 2000,
   })
   const summary = useQuery({
-    queryKey: ['orders', 'summary', user?.id, query, date],
+    queryKey: [...ordersKey, 'summary', user?.id, query, date],
     queryFn: () => api.summary(filters),
     refetchInterval: 2000,
     enabled: staff,
@@ -52,7 +52,7 @@ export function OrdersPage() {
           <ErrorBox error={summary.error} onRetry={() => void summary.refetch()} />
         </div>
       )}
-      {summary.data && (
+      {!summary.isError && summary.data && (
         <div className={styles.metrics}>
           <div>
             <span className={styles.metricIcon}>
@@ -118,7 +118,8 @@ export function OrdersPage() {
         </div>
         {orders.isPending && <Loading>Wczytywanie zamówień…</Loading>}
         {orders.isError && <ErrorBox error={orders.error} onRetry={() => void orders.refetch()} />}
-        {orders.data &&
+        {!orders.isError &&
+          orders.data &&
           (orders.data.results.length ? (
             <>
               <table className={styles.orderTable}>
@@ -200,11 +201,27 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const { id = '' } = useParams()
+  const { data: user } = useSession()
+  const queryClient = useQueryClient()
   const location = useLocation()
+  const detailKey = orderDetailKey(user?.id, id)
   const order = useQuery({
-    queryKey: ['orders', 'detail', id],
+    queryKey: detailKey,
     queryFn: () => api.order(id),
     refetchInterval: 2000,
+  })
+  const delivery = useQuery({
+    queryKey: deliveryWindowKey,
+    queryFn: api.deliveryWindow,
+    enabled: user?.role === 'customer',
+    refetchInterval: 60_000,
+  })
+  const cancel = useMutation({
+    mutationFn: () => api.cancelOrder(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(detailKey, updated)
+      void queryClient.invalidateQueries({ queryKey: ordersKey })
+    },
   })
   if (order.isPending) return <Loading>Wczytywanie zamówienia…</Loading>
   if (order.isError)
@@ -238,6 +255,21 @@ export function OrderDetailPage() {
         </div>
         <StatusBadge status={data.status} />
       </div>
+      {user?.role === 'customer' &&
+        data.status !== 'cancelled' &&
+        delivery.data &&
+        data.delivery_date >= delivery.data.earliest_delivery_date && (
+          <button
+            className={styles.secondaryButton}
+            disabled={cancel.isPending}
+            onClick={() => {
+              if (window.confirm('Czy anulować to zamówienie?')) cancel.mutate()
+            }}
+          >
+            Anuluj zamówienie
+          </button>
+        )}
+      {cancel.error && <ErrorBox error={cancel.error} />}
       <div className={styles.detailGrid}>
         <div className={styles.detailCard}>
           <h2>Pozycje zamówienia</h2>

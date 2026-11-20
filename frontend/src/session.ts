@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { api, type User } from './api/client'
 
 export const sessionKey = ['session'] as const
+export const ordersKey = ['private', 'orders'] as const
+export const orderDetailKey = (userId: string | undefined, id: string) =>
+  [...ordersKey, 'detail', userId, id] as const
 export const useSession = () =>
   useQuery({ queryKey: sessionKey, queryFn: api.session, staleTime: 30_000 })
 

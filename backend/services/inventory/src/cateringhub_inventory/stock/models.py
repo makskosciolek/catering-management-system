@@ -89,11 +89,13 @@ class Reservation(models.Model):
     class Status(models.TextChoices):
         RESERVED = "reserved", "Zarezerwowano"
         SHORTAGE = "shortage", "Brak"
+        CANCELLED = "cancelled", "Anulowano"
+        CONSUMED = "consumed", "Zużyto"
 
     order_id = models.UUIDField(primary_key=True)
     delivery_date = models.DateField()
     requested_items = models.JSONField()
-    status = models.CharField(max_length=8, choices=Status.choices, default=Status.SHORTAGE)
+    status = models.CharField(max_length=9, choices=Status.choices, default=Status.SHORTAGE)
     shortages = models.JSONField(default=list)
     missing_recipes = models.JSONField(default=list)
     attempt = models.PositiveIntegerField(default=0)
@@ -132,6 +134,7 @@ class OutboxEvent(models.Model):
     payload = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    next_publish_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("created_at",)

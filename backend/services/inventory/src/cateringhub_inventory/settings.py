@@ -35,8 +35,11 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 CSRF_COOKIE_SAMESITE = "Lax"
+ORDERS_API_URL = os.environ.get("ORDERS_API_URL", "http://127.0.0.1:8001").rstrip("/")
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["cateringhub_core.auth.StatelessCookieJWTAuthentication"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "cateringhub_inventory.stock.authentication.WarehouseAuthentication"
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["cateringhub_inventory.stock.permissions.WarehousePermission"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

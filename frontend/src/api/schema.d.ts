@@ -84,6 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/v1/auth/session/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_session_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/v1/health/": {
         parameters: {
             query?: never;
@@ -164,6 +180,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/v1/orders/{id}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["orders_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/v1/orders/delivery-window/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orders_delivery_window_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/v1/orders/summary/": {
         parameters: {
             query?: never;
@@ -212,6 +260,11 @@ export interface components {
         };
         CsrfResponse: {
             csrfToken: string;
+        };
+        DeliveryWindow: {
+            /** Format: date */
+            earliest_delivery_date: string;
+            cutoff_hour: number;
         };
         Health: {
             status: string;
@@ -333,13 +386,19 @@ export interface components {
          * @enum {string}
          */
         RoleEnum: "customer" | "warehouse" | "kitchen" | "driver" | "manager" | "admin";
+        SessionIdentity: {
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["RoleEnum"];
+        };
         /**
          * @description * `submitted` - Oczekuje na magazyn
          *     * `stock_reserved` - Składniki zarezerwowane
          *     * `stock_shortage` - Brak składników lub receptury
+         *     * `cancelled` - Anulowane
          * @enum {string}
          */
-        StatusEnum: "submitted" | "stock_reserved" | "stock_shortage";
+        StatusEnum: "submitted" | "stock_reserved" | "stock_shortage" | "cancelled";
         User: {
             /** Format: uuid */
             readonly id: string;
@@ -496,6 +555,25 @@ export interface operations {
             };
         };
     };
+    auth_session_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIdentity"];
+                };
+            };
+        };
+    };
     health_retrieve: {
         parameters: {
             query?: never;
@@ -642,6 +720,47 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+        };
+    };
+    orders_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this order. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+        };
+    };
+    orders_delivery_window_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryWindow"];
                 };
             };
         };

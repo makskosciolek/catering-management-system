@@ -2,7 +2,7 @@ from collections import defaultdict
 from decimal import Decimal
 from uuid import UUID
 
-from cateringhub_core.messaging import STOCK_RESERVED, STOCK_SHORTAGE
+from cateringhub_core.messaging import STOCK_RESERVED, STOCK_SHORTAGE, InvalidEvent
 from django.db import transaction
 from rest_framework.exceptions import APIException, ValidationError
 
@@ -136,3 +136,25 @@ def retry_reservation(order_id):
     if reservation.status == Reservation.Status.SHORTAGE:
         allocate(reservation)
     return reservation
+
+
+def close_reservation(reservation, status):
+    if reservation.status == status:
+        return
+    if reservation.status in (Reservation.Status.CANCELLED, Reservation.Status.CONSUMED):
+        raise InvalidEvent("Rezerwacja została już zamknięta z innym wynikiem.")
+    consume = status == Reservation.Status.CONSUMED
+    if consume and reservation.status != Reservation.Status.RESERVED:
+        raise InvalidEvent("Zużycie wymaga wcześniejszej rezerwacji.")
+    if reservation.status == Reservation.Status.RESERVED:
+        quantities = dict(reservation.lines.values_list("ingredient_id", "quantity"))
+        ingredients = lock_ingredients(quantities)
+        for ingredient in ingredients:
+            ingredient.reserved -= quantities[ingredient.pk]
+            if consume:
+                ingredient.on_hand -= quantities[ingredient.pk]
+        Ingredient.objects.bulk_update(ingredients, ("reserved", "on_hand"))
+    reservation.status = status
+    reservation.shortages = []
+    reservation.missing_recipes = []
+    reservation.save(update_fields=["status", "shortages", "missing_recipes", "updated_at"])

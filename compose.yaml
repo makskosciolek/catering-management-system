@@ -14,12 +14,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/01-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cateringhub_admin -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U cateringhub_admin -d postgres"]
       interval: 3s
       timeout: 3s
       retries: 20
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    hostname: ${RABBITMQ_NODE_HOSTNAME:-rabbitmq}
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-cateringhub}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Run scripts/setup.ps1 first}

@@ -100,3 +100,16 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class SessionIdentitySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    role = serializers.ChoiceField(choices=UserSerializer.Meta.model.Role.choices)
+
+
+class SessionIdentityView(APIView):
+    @extend_schema(responses=SessionIdentitySerializer)
+    def get(self, request):
+        return Response(
+            SessionIdentitySerializer(request.user).data, headers={"Cache-Control": "no-store"}
+        )

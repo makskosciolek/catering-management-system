@@ -541,10 +541,14 @@ components:
       enum:
       - reserved
       - shortage
+      - cancelled
+      - consumed
       type: string
       description: |-
         * `reserved` - Zarezerwowano
         * `shortage` - Brak
+        * `cancelled` - Anulowano
+        * `consumed` - Zużyto
     UnitEnum:
       enum:
       - kg

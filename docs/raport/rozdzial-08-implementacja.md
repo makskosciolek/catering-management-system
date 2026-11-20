@@ -8,11 +8,10 @@ cenę z cennika i zapisuje ją na pozycjach. Zamówienie ze statusem
 „Oczekuje na magazyn” jest widoczne po ponownym otwarciu strony. Menedżer
 widzi listę zamówień z filtrem daty, wyszukiwaniem oraz liczbą zamówień i porcji.
 
-Po zapisie osobny proces wysyła `order.submitted` do RabbitMQ. Sprawdzono,
-że broker przyjął zdarzenia i umieścił je w kolejce dla serwisu Zasobów.
-Rezerwacja składników, praca kuchni i obsługa dostawy nie są jeszcze
-wykonywane. Wcześniej przygotowano dla nich osobne bazy, konto do każdej
-bazy oraz kontrakt pierwszego zdarzenia.
+Po zapisie osobny proces wysyła `order.submitted` do RabbitMQ. Zasoby odbierają
+wiadomość, liczą zapotrzebowanie według receptur i odsyłają wynik rezerwacji
+do Zamówień. Klient może anulować zamówienie przed godziną graniczną, a Zasoby
+zwalniają wtedy składniki. Obsługa kuchni i dostaw pozostaje w planie.
 
 ## 8.2 Mapowanie architektury na strukturę projektu
 
@@ -20,7 +19,8 @@ bazy oraz kontrakt pierwszego zdarzenia.
 |---|---|---|
 | Konta i uprawnienia | `backend/services/orders/src/cateringhub_orders/accounts/` | Model konta i ról, logowanie, profil, rejestracja, kontrola ciasteczka i CSRF |
 | Menu i zamówienia | `backend/services/orders/src/cateringhub_orders/sales/` | Modele `Meal`, `Order`, `OrderItem`, `OutboxEvent`, walidacja i transakcyjny zapis |
-| Proces publikacji | `sales/publisher.py` i polecenie `publish_events` w pakiecie Zamówień | Odczyt oczekujących wpisów, publikacja z potwierdzeniem brokera i zapis czasu wysłania |
+| Proces zdarzeń | `cateringhub_core/messaging.py`, `cateringhub_core/worker.py` oraz polecenie `publish_events` w obu serwisach | Publikacja z potwierdzeniem brokera, odbiór i kontrolowane ponowienie |
+| Składniki i rezerwacje | `backend/services/inventory/src/cateringhub_inventory/stock/` | Przyjęcia dostaw, receptury, stan dostępny, rezerwacje i rozliczenie zapasu |
 | Portal i panel pracowników | `frontend/src/` | Wspólna nawigacja, menu, koszyk, konto, lista i szczegóły zamówień |
 | Kontrakt API | [orders.openapi.yaml](../api/orders.openapi.yaml) i `frontend/src/api/schema.d.ts` | Schemat OpenAPI oraz wygenerowane typy aplikacji webowej |
 | Infrastruktura | `compose.yaml`, `infra/postgres/init.sh`, `scripts/` | Kontenery infrastruktury, inicjalizacja baz, instalacja i uruchamianie procesów |
@@ -55,5 +55,5 @@ Po błędzie publikacji rekord pozostaje w outboxie do następnej próby.
 od instalacji zależności i migracji do uruchomienia przeglądarki. Menu
 i konta demonstracyjne mają dane fikcyjne. PostgreSQL i RabbitMQ działają
 w Dockerze, natomiast API, proces publikacji i Vite uruchamiają się
-na komputerze deweloperskim. W następnej iteracji serwis Zasobów ma
-odebrać oczekującą wiadomość i przeliczyć ją na rezerwację.
+na komputerze deweloperskim. Testy przeglądarkowe można uruchomić w osobnym
+projekcie Compose ze świeżą bazą i brokerem.

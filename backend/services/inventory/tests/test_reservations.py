@@ -5,8 +5,15 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from cateringhub_core.messaging import ORDER_SUBMITTED, STOCK_RESERVED, STOCK_SHORTAGE, Event
-from cateringhub_inventory.stock.events import apply_order_submitted
+from cateringhub_core.messaging import (
+    ORDER_CANCELLED,
+    ORDER_PREPARED,
+    ORDER_SUBMITTED,
+    STOCK_RESERVED,
+    STOCK_SHORTAGE,
+    Event,
+)
+from cateringhub_inventory.stock.events import apply_inventory_event, apply_order_submitted
 from cateringhub_inventory.stock.models import Ingredient, OutboxEvent, ProcessedEvent, Reservation
 from cateringhub_inventory.stock.services import save_recipe
 from conftest import BASE, authenticated_client, receipt_payload
@@ -152,3 +159,49 @@ def test_concurrent_orders_do_not_overbook_one_ingredient():
     assert Reservation.objects.filter(status=Reservation.Status.SHORTAGE).count() == 1
     rice.refresh_from_db()
     assert rice.available == Decimal("0.250")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("event_type", "on_hand", "status"),
+    [
+        (ORDER_CANCELLED, "1.000", Reservation.Status.CANCELLED),
+        (ORDER_PREPARED, "0.500", Reservation.Status.CONSUMED),
+    ],
+)
+def test_closing_reservation_releases_or_consumes_stock_exactly_once(event_type, on_hand, status):
+    rice = ingredient("Ryż", "1.000")
+    submission = submitted((recipe((rice, "0.500")), 1))
+    apply_order_submitted(submission)
+    closure = Event(
+        uuid4(),
+        event_type,
+        submission.order_id,
+        {"delivery_date": submission.payload["delivery_date"]},
+    )
+    apply_inventory_event(closure)
+    apply_inventory_event(closure)
+    apply_inventory_event(Event(uuid4(), event_type, closure.order_id, closure.payload))
+    rice.refresh_from_db()
+    assert rice.on_hand == Decimal(on_hand)
+    assert rice.reserved == 0
+    assert Reservation.objects.get(pk=submission.order_id).status == status
+
+
+@pytest.mark.django_db
+def test_cancellation_arriving_before_submission_does_not_reserve_stock():
+    rice = ingredient("Ryż", "1")
+    submission = submitted((recipe((rice, "0.500")), 1))
+    apply_inventory_event(
+        Event(
+            uuid4(),
+            ORDER_CANCELLED,
+            submission.order_id,
+            {"delivery_date": submission.payload["delivery_date"]},
+        )
+    )
+    apply_order_submitted(submission)
+    rice.refresh_from_db()
+    assert rice.available == Decimal("1")
+    assert Reservation.objects.get(pk=submission.order_id).status == Reservation.Status.CANCELLED
+    assert not OutboxEvent.objects.exists()

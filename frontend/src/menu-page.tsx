@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { api, type Meal } from './api/client'
-import { earliestDeliveryDate, money, ORDER_CUTOFF_HOUR } from './format'
-import { useSession } from './session'
+import { api, deliveryWindowKey, menuKey, type Meal, type Order } from './api/client'
+import { money } from './format'
+import { orderDetailKey, ordersKey, useSession } from './session'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
 
@@ -54,7 +54,7 @@ export function MenuPage(props: CartProps) {
   useEffect(() => {
     if (location.hash === '#basket') document.getElementById('basket')?.scrollIntoView()
   }, [location.hash, location.key])
-  const menu = useQuery({ queryKey: ['menu'], queryFn: api.menu })
+  const menu = useQuery({ queryKey: menuKey, queryFn: api.menu })
   const session = useSession()
   const [category, setCategory] = useState<Meal['category'] | 'all'>('all')
   const [search, setSearch] = useState('')
@@ -149,7 +149,12 @@ export function MenuPage(props: CartProps) {
               </div>
             ))}
         </section>
-        <Cart meals={meals} menuLoaded={menu.isSuccess} {...props} />
+        <Cart
+          key={session.data?.id}
+          meals={menu.data}
+          menuReady={menu.isSuccess && !menu.isFetching}
+          {...props}
+        />
       </div>
     </>
   )
@@ -193,48 +198,65 @@ function Cart({
   basket,
   changeQuantity,
   meals,
-  menuLoaded,
+  menuReady,
   clearBasket,
-}: CartProps & { meals: Meal[]; menuLoaded: boolean }) {
+}: CartProps & { meals?: Meal[]; menuReady: boolean }) {
   const session = useSession()
   const user = session.data
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const selected = meals.filter((meal) => basket[meal.id] > 0)
-  // Danie mogło zostać wycofane z menu po dodaniu do koszyka. Nie pomijamy go po cichu,
-  // tylko pokazujemy i blokujemy wysyłkę, dopóki klient go nie usunie.
-  const unavailable = menuLoaded
+  const delivery = useQuery({
+    queryKey: deliveryWindowKey,
+    queryFn: api.deliveryWindow,
+    enabled: user?.role === 'customer' && Object.keys(basket).length > 0,
+    refetchInterval: 60_000,
+  })
+  const selected = (meals ?? []).filter((meal) => basket[meal.id] > 0)
+  const unavailable = meals
     ? Object.keys(basket).filter((id) => !meals.some((meal) => meal.id === id))
     : []
-  // Identyfikator próby złożenia zamówienia. Ponowienie po utracie połączenia wysyła
-  // ten sam identyfikator, więc serwer nie utworzy drugiego zamówienia.
-  const [attemptId, setAttemptId] = useState(() => crypto.randomUUID())
+  const attemptKey = 'cateringhub-order-attempt:' + user?.id
+  const [attemptId, setAttemptId] = useState<string | null>(() =>
+    user ? sessionStorage.getItem(attemptKey) : null,
+  )
   const quantity = selected.reduce((total, meal) => total + basket[meal.id], 0)
   const estimate =
     selected.reduce(
       (total, meal) => total + Math.round(Number(meal.price) * 100) * basket[meal.id],
       0,
     ) / 100
-  const mutation = useMutation({
-    mutationFn: api.submitOrder,
-    onSuccess: (order) => {
-      clearBasket()
-      setAttemptId(crypto.randomUUID())
-      queryClient.setQueryData(['orders', 'detail', order.id], order)
-      void queryClient.invalidateQueries({ queryKey: ['orders'] })
-      void navigate('/orders/' + order.id, { state: { placed: true } })
-    },
-  })
+  function finishOrder(order: Order) {
+    clearBasket()
+    sessionStorage.removeItem(attemptKey)
+    setAttemptId(null)
+    queryClient.setQueryData(orderDetailKey(user?.id, order.id), order)
+    void queryClient.invalidateQueries({ queryKey: ordersKey })
+    void navigate('/orders/' + order.id, { state: { placed: true } })
+  }
+  const mutation = useMutation({ mutationFn: api.submitOrder, onSuccess: finishOrder })
+  const recover = useMutation({ mutationFn: api.order, onSuccess: finishOrder })
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (
+      !menuReady ||
+      unavailable.length ||
+      !selected.length ||
+      !delivery.data ||
+      mutation.isPending ||
+      recover.isPending
+    )
+      return
+    const id = attemptId ?? crypto.randomUUID()
+    sessionStorage.setItem(attemptKey, id)
+    setAttemptId(id)
     const data = new FormData(event.currentTarget)
     mutation.mutate({
-      id: attemptId,
+      id,
       delivery_date: String(data.get('date')),
       delivery_address: String(data.get('address')),
       contact_phone: String(data.get('phone')),
       note: String(data.get('note')),
-      items: selected.map((meal) => ({ meal_id: meal.id, quantity: basket[meal.id] })),
+      items: Object.entries(basket).map(([meal_id, quantity]) => ({ meal_id, quantity })),
     })
   }
   return (
@@ -248,6 +270,17 @@ function Cart({
           <p>Liczba porcji: {quantity}</p>
         </div>
       </div>
+      {attemptId && (
+        <button
+          type="button"
+          className={styles.textButton}
+          onClick={() => recover.mutate(attemptId)}
+          disabled={mutation.isPending || recover.isPending}
+        >
+          Sprawdź, czy zamówienie zostało zapisane
+        </button>
+      )}
+      {recover.error && <ErrorBox error={recover.error} />}
       {selected.length === 0 && unavailable.length === 0 ? (
         <div className={styles.cartEmpty}>
           <Icon name="bag" size={26} />
@@ -308,14 +341,19 @@ function Cart({
                 <input
                   name="date"
                   type="date"
-                  min={earliestDeliveryDate()}
+                  min={delivery.data?.earliest_delivery_date}
                   aria-describedby="delivery-date-hint"
                   required
                 />
               </label>
               <p id="delivery-date-hint" className={styles.optional}>
-                Zamówienia na jutro przyjmujemy do {ORDER_CUTOFF_HOUR}:00.
+                {delivery.data
+                  ? 'Zamówienia na jutro przyjmujemy do ' + delivery.data.cutoff_hour + ':00.'
+                  : 'Pobieranie dostępnego terminu dostawy.'}
               </p>
+              {delivery.isError && (
+                <ErrorBox error={delivery.error} onRetry={() => void delivery.refetch()} />
+              )}
               <label>
                 Adres dostawy
                 <input
@@ -345,7 +383,13 @@ function Cart({
               {mutation.error && <ErrorBox error={mutation.error} />}
               <button
                 className={styles.primaryButton}
-                disabled={mutation.isPending || unavailable.length > 0}
+                disabled={
+                  mutation.isPending ||
+                  recover.isPending ||
+                  !menuReady ||
+                  !delivery.data ||
+                  unavailable.length > 0
+                }
               >
                 {mutation.isPending ? 'Zapisywanie…' : 'Złóż zamówienie'}{' '}
                 <Icon name="arrow" size={17} />

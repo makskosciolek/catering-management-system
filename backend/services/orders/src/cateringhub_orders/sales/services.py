@@ -1,11 +1,13 @@
 from decimal import Decimal
 from uuid import uuid4
 
-from cateringhub_core.messaging import ORDER_SUBMITTED
+from cateringhub_core.messaging import ORDER_CANCELLED, ORDER_SUBMITTED
+from django.conf import settings
 from django.db import IntegrityError, transaction
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import APIException, NotFound, ValidationError
 
 from .models import Meal, Order, OrderItem, OutboxEvent
+from .rules import earliest_delivery_date
 
 
 class OrderConflict(APIException):
@@ -41,9 +43,20 @@ def create_order(*, customer, items, id=None, **delivery):
     """
     delivery = {"note": "", **delivery}
     if id is not None:
+        # A retry must see the previous attempt before checking the current cutoff.
+        type(customer).objects.select_for_update(no_key=True).get(pk=customer.pk)
         existing = Order.objects.filter(pk=id).first()
         if existing is not None:
             return repeated_order(existing, customer, items, delivery), False
+    earliest = earliest_delivery_date()
+    if delivery["delivery_date"] < earliest:
+        raise ValidationError(
+            {
+                "delivery_date": f"Najwcześniejszy możliwy termin dostawy to {earliest:%d.%m.%Y}. "
+                "Zamówienia na następny dzień przyjmujemy "
+                f"do godziny {settings.ORDER_CUTOFF_HOUR}:00."
+            }
+        )
     meals = {
         meal.id: meal
         for meal in Meal.objects.select_for_update()
@@ -66,8 +79,9 @@ def create_order(*, customer, items, id=None, **delivery):
     except IntegrityError:
         if id is None:
             raise
-        # Równoległe żądanie z tym samym identyfikatorem zapisało zamówienie pierwsze.
-        existing = Order.objects.get(pk=id)
+        existing = Order.objects.filter(pk=id).first()
+        if existing is None:
+            raise
         return repeated_order(existing, customer, items, delivery), False
     OrderItem.objects.bulk_create(
         [
@@ -92,3 +106,22 @@ def create_order(*, customer, items, id=None, **delivery):
         },
     )
     return order, True
+
+
+@transaction.atomic
+def cancel_order(*, order_id, customer):
+    order = Order.objects.select_for_update().filter(pk=order_id, customer=customer).first()
+    if order is None:
+        raise NotFound()
+    if order.status == Order.Status.CANCELLED:
+        return order
+    if order.delivery_date < earliest_delivery_date():
+        raise ValidationError({"delivery_date": "Minął termin anulowania tego zamówienia."})
+    order.status = Order.Status.CANCELLED
+    order.save(update_fields=["status"])
+    OutboxEvent.objects.create(
+        order=order,
+        event_type=ORDER_CANCELLED,
+        payload={"delivery_date": order.delivery_date.isoformat()},
+    )
+    return order

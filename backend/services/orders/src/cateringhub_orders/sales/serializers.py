@@ -1,9 +1,7 @@
-from django.conf import settings
 from rest_framework import serializers
 
 from ..accounts.validators import PhoneField
 from .models import Meal, Order, OrderItem
-from .rules import earliest_delivery_date
 from .services import create_order
 
 
@@ -63,16 +61,6 @@ class CreateOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ("id", "delivery_date", "delivery_address", "contact_phone", "note", "items")
-
-    def validate_delivery_date(self, value):
-        earliest = earliest_delivery_date()
-        if value < earliest:
-            raise serializers.ValidationError(
-                f"Najwcześniejszy możliwy termin dostawy to {earliest:%d.%m.%Y}. "
-                f"Zamówienia na następny dzień przyjmujemy do godziny "
-                f"{settings.ORDER_CUTOFF_HOUR}:00."
-            )
-        return value
 
     def validate_items(self, value):
         if len({item["meal_id"] for item in value}) != len(value):

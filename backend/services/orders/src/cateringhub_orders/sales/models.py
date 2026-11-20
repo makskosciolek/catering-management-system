@@ -38,6 +38,7 @@ class Order(models.Model):
         SUBMITTED = "submitted", "Oczekuje na magazyn"
         STOCK_RESERVED = "stock_reserved", "Składniki zarezerwowane"
         STOCK_SHORTAGE = "stock_shortage", "Brak składników lub receptury"
+        CANCELLED = "cancelled", "Anulowane"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -81,6 +82,7 @@ class OutboxEvent(models.Model):
     payload = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    next_publish_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("created_at",)

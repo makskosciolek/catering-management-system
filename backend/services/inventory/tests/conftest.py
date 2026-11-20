@@ -1,6 +1,8 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
+import pytest
 from cateringhub_core.config import JWT_COOKIE_NAME
+from cateringhub_inventory.stock.authentication import WarehouseIdentity
 from django.conf import settings
 from django.http import HttpRequest
 from django.middleware.csrf import get_token
@@ -8,6 +10,15 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 BASE = "/api/inventory/v1"
+
+
+@pytest.fixture(autouse=True)
+def current_identity(monkeypatch):
+    def lookup(raw_token):
+        token = AccessToken(raw_token)
+        return WarehouseIdentity(UUID(token["user_id"]), token["role"])
+
+    monkeypatch.setattr("cateringhub_inventory.stock.authentication.check_session", lookup)
 
 
 def authenticated_client(role, user_id=None):

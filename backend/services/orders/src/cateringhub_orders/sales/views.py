@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import connection
 from django.db.models import Count, Sum
 from drf_spectacular.types import OpenApiTypes
@@ -15,7 +16,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import Meal, Order
+from .rules import earliest_delivery_date
 from .serializers import CreateOrderSerializer, MealSerializer, OrderSerializer
+from .services import cancel_order
 
 
 @extend_schema(
@@ -37,6 +40,7 @@ class MealViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MealSerializer
     queryset = Meal.objects.filter(is_active=True)
     permission_classes = [AllowAny]
+    authentication_classes = []
     filter_backends = [filters.SearchFilter]
     search_fields = ["name", "description", "allergens"]
     pagination_class = None
@@ -88,6 +92,38 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
         order = serializer.save()
         response_status = status.HTTP_201_CREATED if serializer.created else status.HTTP_200_OK
         return Response(OrderSerializer(order).data, status=response_status)
+
+    @extend_schema(
+        responses=inline_serializer(
+            "DeliveryWindow",
+            {
+                "earliest_delivery_date": serializers.DateField(),
+                "cutoff_hour": serializers.IntegerField(),
+            },
+        )
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="delivery-window",
+        authentication_classes=[],
+        permission_classes=[AllowAny],
+    )
+    def delivery_window(self, request):
+        return Response(
+            {
+                "earliest_delivery_date": earliest_delivery_date().isoformat(),
+                "cutoff_hour": settings.ORDER_CUTOFF_HOUR,
+            }
+        )
+
+    @extend_schema(request=None, responses=OrderSerializer)
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        if request.user.role != request.user.Role.CUSTOMER:
+            raise PermissionDenied("Zamówienie może anulować klient, który je złożył.")
+        order = cancel_order(order_id=self.get_object().pk, customer=request.user)
+        return Response(self.get_serializer(order).data)
 
     @extend_schema(
         responses=inline_serializer(

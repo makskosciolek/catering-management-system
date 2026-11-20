@@ -6,9 +6,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.utils import timezone
 
 from ...models import Meal, Order
+from ...rules import earliest_delivery_date
 from ...services import create_order
 
 DEMO_PASSWORD = "SmakBox-demo-2026!"
@@ -120,7 +120,7 @@ class Command(BaseCommand):
                     id=order_id,
                     customer=user_model.objects.get(email=f"{prefix}@smakbox.example"),
                     items=[{"meal_id": demo_id(slug), "quantity": 2}],
-                    delivery_date=timezone.localdate() + timedelta(days=1),
+                    delivery_date=earliest_delivery_date() + timedelta(days=1),
                     delivery_address="ul. Przykładowa 12, Kraków",
                     contact_phone="000 000 000",
                     note="Dane demonstracyjne",

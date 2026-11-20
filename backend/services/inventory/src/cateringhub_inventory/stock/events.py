@@ -1,9 +1,14 @@
-from cateringhub_core.messaging import ORDER_SUBMITTED, InvalidEvent
+from cateringhub_core.messaging import (
+    ORDER_CANCELLED,
+    ORDER_PREPARED,
+    ORDER_SUBMITTED,
+    InvalidEvent,
+)
 from django.db import transaction
 from rest_framework import serializers
 
 from .models import ProcessedEvent, Reservation
-from .services import allocate
+from .services import allocate, close_reservation
 
 
 class RequestedItem(serializers.Serializer):
@@ -40,3 +45,45 @@ def apply_order_submitted(event):
     )
     if created:
         allocate(reservation)
+
+
+@transaction.atomic
+def apply_order_cancelled(event):
+    try:
+        delivery_date = serializers.DateField().run_validation(event.payload.get("delivery_date"))
+    except serializers.ValidationError as exc:
+        raise InvalidEvent("Nieprawidłowa data dostawy anulowanego zamówienia.") from exc
+    if not ProcessedEvent.objects.get_or_create(pk=event.id)[1]:
+        return
+    reservation, created = Reservation.objects.select_for_update().get_or_create(
+        pk=event.order_id,
+        defaults={
+            "delivery_date": delivery_date,
+            "requested_items": [],
+            "status": Reservation.Status.CANCELLED,
+        },
+    )
+    if not created:
+        close_reservation(reservation, Reservation.Status.CANCELLED)
+
+
+@transaction.atomic
+def apply_order_prepared(event):
+    if not ProcessedEvent.objects.get_or_create(pk=event.id)[1]:
+        return
+    try:
+        reservation = Reservation.objects.select_for_update().get(pk=event.order_id)
+    except Reservation.DoesNotExist as exc:
+        raise InvalidEvent("Brak rezerwacji dla przygotowanego zamówienia.") from exc
+    close_reservation(reservation, Reservation.Status.CONSUMED)
+
+
+def apply_inventory_event(event):
+    if event.type == ORDER_SUBMITTED:
+        apply_order_submitted(event)
+    elif event.type == ORDER_CANCELLED:
+        apply_order_cancelled(event)
+    elif event.type == ORDER_PREPARED:
+        apply_order_prepared(event)
+    else:
+        raise InvalidEvent("Zasoby nie obsługują tego typu zdarzenia.")
