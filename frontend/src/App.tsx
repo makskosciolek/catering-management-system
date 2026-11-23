@@ -10,18 +10,27 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router'
-import { api } from './api/client'
-import { isManagement, sessionKey, useSession } from './session'
+import { api, type User } from './api/client'
+import { canViewOrders, canViewWarehouse, homeFor, sessionKey, useSession } from './session'
 import { AuthPage, ProfilePage } from './auth-pages'
 import { MenuPage, type Basket } from './menu-page'
 import { OrderDetailPage, OrdersPage } from './orders-pages'
+import { WarehouseOverview } from './warehouse-overview'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
+
+const pageLabels = new Map([
+  ['orders', 'Zamówienia'],
+  ['warehouse', 'Magazyn'],
+  ['profile', 'Mój profil'],
+  ['login', 'Konto'],
+  ['register', 'Konto'],
+])
 
 function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () => void }) {
   const session = useSession()
   const user = session.data
-  const staff = isManagement(user)
+  const staff = canViewWarehouse(user)
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -34,17 +43,11 @@ function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () =
       void navigate('/login')
     },
   })
-  const currentPage = location.pathname.startsWith('/orders')
-    ? 'Zamówienia'
-    : location.pathname === '/profile'
-      ? 'Mój profil'
-      : ['/login', '/register'].includes(location.pathname)
-        ? 'Konto'
-        : 'Menu'
+  const currentPage = pageLabels.get(location.pathname.split('/')[1]) ?? 'Menu'
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <Link to={staff ? '/orders' : '/menu'} className={styles.brand} aria-label="CateringHub">
+        <Link to={homeFor(user)} className={styles.brand} aria-label="CateringHub">
           <span className={styles.brandMark}>
             <Icon name="brand" size={23} />
           </span>
@@ -62,10 +65,16 @@ function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () =
                 Menu
               </NavLink>
             )}
-            {user && (staff || user.role === 'customer') && (
+            {canViewOrders(user) && (
               <NavLink to="/orders">
                 <Icon name="orders" />
                 Zamówienia
+              </NavLink>
+            )}
+            {staff && (
+              <NavLink to="/warehouse">
+                <Icon name="warehouse" />
+                Magazyn
               </NavLink>
             )}
             {user && (
@@ -137,15 +146,24 @@ function Layout({ quantity, clearBasket }: { quantity: number; clearBasket: () =
   )
 }
 
-function Protected({ children }: { children: ReactNode }) {
+function Protected({
+  children,
+  allows,
+}: {
+  children: ReactNode
+  allows?: (user: User) => boolean
+}) {
   const session = useSession()
   if (session.isPending) return <Loading />
   if (session.isError)
     return <ErrorBox error={session.error} onRetry={() => void session.refetch()} />
-  return session.data ? children : <Navigate to="/login" replace />
+  if (!session.data) return <Navigate to="/login" replace />
+  if (allows && !allows(session.data)) return <Navigate to={homeFor(session.data)} replace />
+  return children
 }
 
 export function App() {
+  const session = useSession()
   const [basket, setBasket] = useState<Basket>({})
   function changeQuantity(id: string, delta: number) {
     setBasket((previous) => {
@@ -167,7 +185,12 @@ export function App() {
           />
         }
       >
-        <Route index element={<Navigate to="/menu" replace />} />
+        <Route
+          index
+          element={
+            session.isPending ? <Loading /> : <Navigate to={homeFor(session.data)} replace />
+          }
+        />
         <Route
           path="/menu"
           element={
@@ -179,7 +202,7 @@ export function App() {
         <Route
           path="/orders"
           element={
-            <Protected>
+            <Protected allows={canViewOrders}>
               <OrdersPage />
             </Protected>
           }
@@ -187,8 +210,16 @@ export function App() {
         <Route
           path="/orders/:id"
           element={
-            <Protected>
+            <Protected allows={canViewOrders}>
               <OrderDetailPage />
+            </Protected>
+          }
+        />
+        <Route
+          path="/warehouse"
+          element={
+            <Protected allows={canViewWarehouse}>
+              <WarehouseOverview />
             </Protected>
           }
         />

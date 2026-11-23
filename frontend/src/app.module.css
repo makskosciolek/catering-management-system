@@ -917,6 +917,13 @@
 .status[data-tone='warning'] > span {
   background: #aa4343;
 }
+.status[data-tone='neutral'] {
+  color: var(--muted);
+  background: var(--paper);
+}
+.status[data-tone='neutral'] > span {
+  background: var(--muted);
+}
 .pagination {
   display: flex;
   justify-content: space-between;

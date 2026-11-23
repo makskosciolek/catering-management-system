@@ -1,0 +1,141 @@
+.panels {
+  display: grid;
+  align-items: start;
+  gap: 16px;
+}
+
+.panels > section {
+  min-width: 0;
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 16px 14px;
+}
+
+.panelHeader h2 {
+  font-size: 1.04rem;
+}
+
+.panelHeader p,
+.recordHeading small {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.filter input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.stockTable th,
+.stockTable td:not(:first-child) {
+  overflow-wrap: normal;
+}
+
+.stockTable td .low {
+  color: #812b2b;
+  font-weight: 650;
+}
+
+.reservations {
+  scroll-margin-top: 16px;
+}
+
+.records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.record {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+  overflow-wrap: anywhere;
+}
+
+.recordHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.recordHeading a {
+  font-weight: 750;
+}
+
+.recordHeading a:hover {
+  text-decoration: underline;
+}
+
+.recordHeading small {
+  display: block;
+}
+
+.shortages,
+.allocation {
+  margin: 12px 0 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--paper);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.shortages {
+  padding-left: 28px;
+  color: #812b2b;
+  background: #fae9e5;
+}
+
+.allocation summary {
+  color: var(--accent-hover);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.allocation ul {
+  list-style: none;
+  padding: 6px 0 0;
+  margin: 0;
+}
+
+.allocation li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 4px;
+}
+
+.allocation li strong {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+@media (min-width: 1280px) {
+  .panels {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+
+  .jumpLink {
+    display: none;
+  }
+}

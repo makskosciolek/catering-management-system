@@ -30,6 +30,7 @@ const paths = {
       <path d="M5 7h14l2 14H3L5 7zM9 9V6a3 3 0 1 1 6 0v3" />
     </>
   ),
+  warehouse: <path d="m3 9 9-6 9 6v12H3V9Zm4 12v-8h10v8M7 17h10" />,
   logout: (
     <>
       <path d="M11 5H5v14h6m4-11 4 4-4 4m4-4H9" />
@@ -117,18 +118,63 @@ export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => v
   )
 }
 
+export type StatusTone = 'pending' | 'ok' | 'warning' | 'neutral'
+
+const orderStatus: Record<Order['status'], { label: string; tone: StatusTone }> = {
+  submitted: { label: 'Oczekuje na magazyn', tone: 'pending' },
+  stock_reserved: { label: 'Składniki zarezerwowane', tone: 'ok' },
+  stock_shortage: { label: 'Brak składników lub receptury', tone: 'warning' },
+  cancelled: { label: 'Anulowane', tone: 'neutral' },
+}
+
 export function StatusBadge({ status }: { status: Order['status'] }) {
-  const states: Record<Order['status'], { label: string; tone: string }> = {
-    submitted: { label: 'Oczekuje na magazyn', tone: 'pending' },
-    stock_reserved: { label: 'Składniki zarezerwowane', tone: 'ok' },
-    stock_shortage: { label: 'Brak składników lub receptury', tone: 'warning' },
-    cancelled: { label: 'Anulowane', tone: 'warning' },
-  }
-  const { label, tone } = states[status]
+  const { label, tone } = orderStatus[status]
+  return <StatusPill tone={tone}>{label}</StatusPill>
+}
+
+export function StatusPill({ children, tone }: { children: ReactNode; tone: StatusTone }) {
   return (
     <span className={styles.status} data-tone={tone}>
       <span aria-hidden="true" />
-      {label}
+      {children}
     </span>
+  )
+}
+
+export function PageControls({
+  page,
+  data,
+  label,
+  onChange,
+}: {
+  page: number
+  data: { count: number; previous?: string | null; next?: string | null }
+  label: string
+  onChange: (page: number) => void
+}) {
+  return (
+    <div className={styles.pagination}>
+      <span>
+        Strona {page} · {data.count} {label}
+      </span>
+      <div className={styles.inlineActions}>
+        <button
+          className={styles.smallButton}
+          type="button"
+          disabled={!data.previous}
+          onClick={() => onChange(page - 1)}
+        >
+          Poprzednia
+        </button>
+        <button
+          className={styles.smallButton}
+          type="button"
+          disabled={!data.next}
+          onClick={() => onChange(page + 1)}
+        >
+          Następna
+        </button>
+      </div>
+    </div>
   )
 }

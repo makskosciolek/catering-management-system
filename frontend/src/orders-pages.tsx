@@ -4,7 +4,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import { api, deliveryWindowKey } from './api/client'
 import { dateLabel, money, orderCode } from './format'
 import { isManagement, orderDetailKey, ordersKey, useSession } from './session'
-import { ErrorBox, Icon, Loading, StatusBadge } from './ui'
+import { ErrorBox, Icon, Loading, PageControls, StatusBadge } from './ui'
 import styles from './app.module.css'
 
 export function OrdersPage() {
@@ -159,29 +159,7 @@ export function OrdersPage() {
                   ))}
                 </tbody>
               </table>
-              <div className={styles.pagination}>
-                <span>
-                  Strona {page} · {orders.data.count} zamówień
-                </span>
-                <div className={styles.inlineActions}>
-                  <button
-                    className={styles.smallButton}
-                    type="button"
-                    disabled={!orders.data.previous}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Poprzednia
-                  </button>
-                  <button
-                    className={styles.smallButton}
-                    type="button"
-                    disabled={!orders.data.next}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Następna
-                  </button>
-                </div>
-              </div>
+              <PageControls page={page} data={orders.data} label="zamówień" onChange={setPage} />
             </>
           ) : (
             <div className={styles.empty}>

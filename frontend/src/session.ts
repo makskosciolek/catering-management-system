@@ -12,6 +12,19 @@ export function isManagement(user: User | null | undefined) {
   return user?.role === 'manager' || user?.role === 'admin'
 }
 
+export function canViewOrders(user: User | null | undefined) {
+  return isManagement(user) || user?.role === 'customer'
+}
+
+export function canViewWarehouse(user: User | null | undefined) {
+  return isManagement(user) || user?.role === 'warehouse'
+}
+
+export function homeFor(user: User | null | undefined) {
+  if (user?.role === 'warehouse') return '/warehouse'
+  return isManagement(user) ? '/orders' : '/menu'
+}
+
 export const roleLabel: Record<User['role'], string> = {
   customer: 'Klient',
   warehouse: 'Magazynier',

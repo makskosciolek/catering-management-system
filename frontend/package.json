@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "check": "tsc -b && eslint . && prettier --check src tests",
     "format": "prettier --write src tests",
-    "api:types": "openapi-typescript ../docs/api/orders.openapi.yaml -o src/api/schema.d.ts",
+    "api:types": "openapi-typescript ../docs/api/orders.openapi.yaml -o src/api/schema.d.ts && openapi-typescript ../docs/api/inventory.openapi.yaml -o src/api/inventory-schema.d.ts",
     "test:e2e": "playwright test",
     "test:e2e:isolated": "node ../scripts/test-e2e.mjs"
   },

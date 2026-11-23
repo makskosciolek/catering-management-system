@@ -26,7 +26,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Rola | Zakres dostępu |
 |---|---|
 | Klient | Menu, składanie i przegląd własnych zamówień, edycja profilu |
-| Magazynier | Składniki, przyjęcia, receptury, odczyt stanów i ponawianie rezerwacji przez API |
+| Magazynier | Podgląd stanów i rezerwacji w panelu Magazyn. Przyjęcia, receptury i ponawianie rezerwacji przez API. |
 | Pracownik kuchni | Lista produkcyjna, zmiana statusu przygotowania zamówień |
 | Kierowca | Przydzielone dostawy, zmiana statusu dostawy |
 | Menedżer | Przegląda zamówienia, podsumowanie i dane Zasobów. Docelowo także koordynuje dostawy, personel i planowanie. |
@@ -64,7 +64,13 @@ Pierwsze polecenie przygotowuje lokalny plik `.env`, uruchamia PostgreSQL
 i RabbitMQ, instaluje zależności, stosuje migracje i ładuje fikcyjne dane.
 Drugie uruchamia API i proces obsługi zdarzeń obu serwisów oraz Vite. Otwórz
 [CateringHub](http://localhost:5173/). Na ekranie logowania przyciski
-**Dane klienta** i **Dane menedżera** uzupełniają lokalne dane demonstracyjne.
+**Dane klienta**, **Dane menedżera** i **Dane magazyniera** uzupełniają lokalne
+dane demonstracyjne.
+
+W zakładce **Magazyn** widać zapas fizyczny, ilość zarezerwowaną, dostępny
+zapas i próg minimalny. Można wyświetlić tylko składniki poniżej minimum
+i przejrzeć wyniki rezerwacji. Menedżer i administrator przechodzą z rezerwacji
+do szczegółów zamówienia.
 
 Złóż zamówienie jako klient, a następnie odszukaj je w panelu menedżera po
 adresie e-mail. Nowe zamówienie czeka na wynik z Zasobów. Szczegóły zamówienia
@@ -160,7 +166,8 @@ cateringhub/
 - [x] Dokumentacja implementacji, testy i poprawki (rozdziały 8–10)
 - [x] Serwis Zasobów: ewidencja składników, przyjęcia dostaw i odczyt stanów przez API
 - [x] Receptury, rezerwacje i wymiana zdarzeń między Zasobami i Zamówieniami
-- [ ] Panel magazynu i serwis Realizacji
+- [x] Podgląd stanów i rezerwacji w panelu Magazyn
+- [ ] Formularze magazynowe i serwis Realizacji
 - [ ] Wartość sprzedaży i popularność dań w Zamówieniach
 - [ ] Wskaźniki dostaw w Realizacji i planowanie zapotrzebowania w Zasobach
 - [ ] Wdrożenie

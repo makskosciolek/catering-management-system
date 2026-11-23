@@ -41,7 +41,14 @@ zapisane w rezerwacji. Ponowne doręczenie nie zmienia stanu drugi raz.
 ## 2. Jak sprawdzić
 
 Uruchom `scripts/setup.ps1` i `scripts/dev.ps1` zgodnie z [README](../README.md).
-Użyj konta `magazyn@smakbox.example` z hasłem ze
+Zaloguj się przyciskiem **Dane magazyniera**, aby otworzyć
+[panel Magazyn](http://localhost:5173/warehouse). Panel pokazuje stany składników,
+progi minimum i wyniki rezerwacji razem z brakującymi składnikami lub recepturami.
+Rozwinięcie rezerwacji pokazuje także ilości zwolnione po anulowaniu oraz ilości
+zużyte po przygotowaniu. Menedżer i administrator otwierają **Magazyn** z menu
+i mogą przejść stamtąd do szczegółów zamówienia.
+
+Do bezpośredniego sprawdzenia API użyj konta `magazyn@smakbox.example` z hasłem ze
 [skryptu demonstracyjnego](../backend/services/orders/src/cateringhub_orders/sales/management/commands/seed_demo.py).
 Polecenia niżej korzystają ze wspólnego adresu Vite dla obu API.
 
@@ -62,7 +69,7 @@ i [Swagger UI](http://localhost:5173/api/inventory/v1/docs/). Przy żądaniach
 
 ## 3. Co zostało
 
-1. Dodać panel magazyniera i testy przeglądarkowe obsługi magazynu.
+1. Dodać formularze prowadzenia magazynu i testy przeglądarkowe operacji zapisu.
 2. Podłączyć Realizację jako nadawcę `order.prepared`.
 3. Wyliczać plan zapotrzebowania.
 
