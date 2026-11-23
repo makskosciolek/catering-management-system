@@ -7,12 +7,6 @@ import { isManagement, orderDetailKey, ordersKey, useSession } from './session'
 import { ErrorBox, Icon, Loading, PageControls, StatusBadge } from './ui'
 import styles from './app.module.css'
 
-// Status zamówienia zmienia się bez udziału użytkownika tylko wtedy, gdy czeka ono na
-// odpowiedź magazynu. Tylko wtedy odświeżamy często, w pozostałych przypadkach co 30 s.
-const FAST_REFRESH = 2000
-const SLOW_REFRESH = 30_000
-const refreshEvery = (waitingForStock: boolean) => (waitingForStock ? FAST_REFRESH : SLOW_REFRESH)
-
 export function OrdersPage() {
   const { data: user } = useSession()
   const staff = isManagement(user)
@@ -26,15 +20,12 @@ export function OrdersPage() {
   const orders = useQuery({
     queryKey: [...ordersKey, 'list', user?.id, query, date, page],
     queryFn: () => api.orders(new URLSearchParams([...filters, ['page', String(page)]])),
-    refetchInterval: (current) =>
-      refreshEvery(
-        current.state.data?.results.some((order) => order.status === 'submitted') ?? false,
-      ),
+    refetchInterval: 2000,
   })
   const summary = useQuery({
     queryKey: [...ordersKey, 'summary', user?.id, query, date],
     queryFn: () => api.summary(filters),
-    refetchInterval: SLOW_REFRESH,
+    refetchInterval: 2000,
     enabled: staff,
   })
   return (
@@ -195,7 +186,7 @@ export function OrderDetailPage() {
   const order = useQuery({
     queryKey: detailKey,
     queryFn: () => api.order(id),
-    refetchInterval: (current) => refreshEvery(current.state.data?.status === 'submitted'),
+    refetchInterval: 2000,
   })
   const delivery = useQuery({
     queryKey: deliveryWindowKey,
