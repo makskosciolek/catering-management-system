@@ -18,8 +18,11 @@ menu i kontami demonstracyjnymi.
 | T-07 | Publikację zdarzeń do działającego brokera | Wpis zamówienia z testu przeglądarkowego otrzymał znacznik publikacji. W nowej kolejce magazynu były trzy komunikaty, w tym zdarzenia z danych demonstracyjnych. |
 | T-08 | Walidację OpenAPI i budowę interfejsu z wygenerowanymi typami | Schemat bez ostrzeżeń, kontrola TypeScript i budowa zakończone powodzeniem |
 | T-09 | Dostęp administratora do panelu Django | W Chrome zalogowano się kontem demonstracyjnym i otwarto listę dań. |
+| T-10 | Automatyczne sprawdzenie całego repozytorium w GitHub Actions | Uruchomienie z 20 listopada 2026 r.: ruff, kontrola TypeScript, ESLint, Prettier, budowa frontendu, 25 testów API Zamówień, 21 testów API Zasobów i 5 scenariuszy Playwright zakończone powodzeniem. |
 
-Zestaw obejmuje osiem przypadków pytest i dwa scenariusze Playwright.
+Od 20 listopada testy uruchamiają się automatycznie przy każdym wysłaniu zmian do
+repozytorium (plik `.github/workflows/check.yml`), więc wynik jest widoczny przy
+każdym commicie na GitHubie.
 Do sprawdzenia pozostają przebieg od rezerwacji do doręczenia, obciążenie,
 odtwarzanie bazy i skalowanie systemowe interfejsu.
 
@@ -38,3 +41,4 @@ odtwarzanie bazy i skalowanie systemowe interfejsu.
 | U-09 | Wycofanie dania z menu, gdy klient ma je w koszyku | Pozycja znikała z koszyka i z wysyłanego zamówienia, ale licznik porcji w nawigacji nadal ją uwzględniał. Klient mógł złożyć niepełne zamówienie, nie wiedząc o tym. |
 | U-10 | Porównanie wymagania FR-06 z działaniem wyszukiwarki | Wymaganie i API przewidują wyszukiwanie po alergenach, ale wyszukiwarka w menu sprawdzała tylko nazwę i opis dania. Wpisanie np. „gluten” nie zwracało dań z tym alergenem. |
 | U-11 | Konto pracownika utworzone w panelu Django z wielkimi literami w adresie | Panel zapisywał adres w podanej postaci, a logowanie porównuje adres zapisany małymi literami. Pracownik nie mógł zalogować się w aplikacji. Dodatkowo rejestracja przyjmowała adres dłuższy niż 254 znaki, który baza odrzucała błędem serwera. |
+| U-12 | Przegląd obciążenia generowanego przez panel zamówień | Lista zamówień, podsumowanie dnia i szczegóły zamówienia odświeżały się co 2 sekundy przez cały czas otwarcia karty, także gdy żadne zamówienie nie mogło już zmienić statusu. Jedna karta wysyłała około 60 żądań na minutę. |
