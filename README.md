@@ -18,7 +18,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Mikroserwis | Zakres | Stan w tej wersji |
 |---|---|---|
 | Zamówienia (`orders`) | Konta, menu, koszyk, zamówienia, historia klienta i statystyki sprzedaży | Działają obsługa zamówień, publikacja zdarzeń oraz liczniki zamówień i porcji. Wartość sprzedaży i popularność dań są planowane. |
-| Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | API obsługuje składniki, przyjęcia, receptury i zapasy. Serwis rezerwuje składniki na podstawie zdarzeń zamówień. |
+| Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Panel obsługuje składniki, przyjęcia, receptury i ponowienia rezerwacji. Serwis rezerwuje składniki na podstawie zdarzeń zamówień. |
 | Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Planowana jest obsługa kuchni i kierowców oraz zestawienia dostaw doręczonych, nieudanych i terminowych. |
 
 ### Role użytkowników
@@ -26,15 +26,15 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 | Rola | Zakres dostępu |
 |---|---|
 | Klient | Menu, składanie i przegląd własnych zamówień, edycja profilu |
-| Magazynier | Podgląd stanów i rezerwacji w panelu Magazyn. Przyjęcia, receptury i ponawianie rezerwacji przez API. |
+| Magazynier | Stany i historia przyjęć, dodawanie składników, zapisywanie przyjęć i receptur oraz ponawianie rezerwacji. |
 | Pracownik kuchni | Lista produkcyjna, zmiana statusu przygotowania zamówień |
 | Kierowca | Przydzielone dostawy, zmiana statusu dostawy |
 | Menedżer | Przegląda zamówienia, podsumowanie i dane Zasobów. Docelowo także koordynuje dostawy, personel i planowanie. |
-| Administrator | Zarządza kontami, rolami i menu w panelu Django. Ma pełny dostęp do API Zasobów. |
+| Administrator | Zarządza kontami, rolami i menu w panelu Django. Ma dostęp do odczytu i zapisu w panelu Magazyn. |
 
 Prototyp obsługuje jedną fikcyjną firmę, SmakBox. Obecnie dostępne są widoki
-klienta i menedżera oraz panel Django administratora. Tabela uwzględnia również
-planowane role operacyjne.
+klienta, menedżera i magazyniera oraz panel Django administratora. Tabela
+uwzględnia również planowane role operacyjne.
 
 ## Technologie
 
@@ -72,6 +72,11 @@ zapas i próg minimalny. Można wyświetlić tylko składniki poniżej minimum
 i przejrzeć wyniki rezerwacji. Menedżer i administrator przechodzą z rezerwacji
 do szczegółów zamówienia.
 
+Magazynier może dodać składnik w widoku stanów. W zakładce **Przyjęcia** zapisuje
+dostawę i widzi historię, a w zakładce **Receptury** ustala ilości na porcję.
+Po uzupełnieniu zapasu lub receptury wybiera **Ponów rezerwację** przy zamówieniu
+z brakiem. Szczegóły przebiegu opisano w [instrukcji Zasobów](docs/inventory.md).
+
 Złóż zamówienie jako klient, a następnie odszukaj je w panelu menedżera po
 adresie e-mail. Nowe zamówienie czeka na wynik z Zasobów. Szczegóły zamówienia
 pokazują po chwili „Składniki zarezerwowane” albo „Brak składników lub receptury”.
@@ -83,7 +88,7 @@ zamówienia zaginie, koszyk pozwala sprawdzić zapis przed kolejną próbą.
 [opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/) i
 [panel Django](http://localhost:8001/api/orders/admin/) działają po uruchomieniu
 aplikacji. Polecenie `seed_demo` tworzy również lokalne konta administratora
-i magazyniera. Zobacz [instrukcję obsługi API Zasobów](docs/inventory.md).
+i magazyniera.
 
 Ctrl+C zatrzymuje procesy aplikacji. Logi znajdziesz w `.artifacts/dev/`.
 Jeśli chcesz zatrzymać też PostgreSQL i RabbitMQ, użyj `docker compose stop`.
@@ -167,7 +172,8 @@ cateringhub/
 - [x] Serwis Zasobów: ewidencja składników, przyjęcia dostaw i odczyt stanów przez API
 - [x] Receptury, rezerwacje i wymiana zdarzeń między Zasobami i Zamówieniami
 - [x] Podgląd stanów i rezerwacji w panelu Magazyn
-- [ ] Formularze magazynowe i serwis Realizacji
+- [x] Formularze składników, przyjęć i receptur oraz ponawianie rezerwacji w panelu
+- [ ] Serwis Realizacji
 - [ ] Wartość sprzedaży i popularność dań w Zamówieniach
 - [ ] Wskaźniki dostaw w Realizacji i planowanie zapotrzebowania w Zasobach
 - [ ] Wdrożenie

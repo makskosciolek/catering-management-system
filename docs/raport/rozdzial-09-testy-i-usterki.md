@@ -19,10 +19,19 @@ menu i kontami demonstracyjnymi.
 | T-08 | Walidację OpenAPI i budowę interfejsu z wygenerowanymi typami | Schemat bez ostrzeżeń, kontrola TypeScript i budowa zakończone powodzeniem |
 | T-09 | Dostęp administratora do panelu Django | W Chrome zalogowano się kontem demonstracyjnym i otwarto listę dań. |
 | T-10 | Automatyczne sprawdzenie całego repozytorium w GitHub Actions | Uruchomienie z 20 listopada 2026 r.: ruff, kontrola TypeScript, ESLint, Prettier, budowa frontendu, 25 testów API Zamówień, 21 testów API Zasobów i 5 scenariuszy Playwright zakończone powodzeniem. |
+| T-11 | Przyjęcie dostawy po utracie odpowiedzi | Pierwszy zapis zwrócił `201`. Po utracie odpowiedzi i odświeżeniu karty przeglądarka wysłała ten sam UUID i te same dane. Serwer zwrócił `200`. W historii był jeden wpis, a zapas wzrósł o 2,5 kg. |
+| T-12 | Zapis receptury, uzupełnienie braku i ponowienie rezerwacji | Zamówienie dwóch porcji czekało na brakujący 1 kg. Po przyjęciu 1 kg i ponowieniu magazyn pokazał udaną rezerwację, a RabbitMQ przekazał wynik do zamówienia klienta. |
+| T-13 | Odczyt magazynu przez menedżera i utrata sesji | Menedżer odczytał historię i recepturę. Formularze zapisu były dostępne magazynierowi. Po wylogowaniu dane historii zniknęły i pojawił się ekran logowania. |
 
 Od 20 listopada testy uruchamiają się automatycznie przy każdym wysłaniu zmian do
 repozytorium (plik `.github/workflows/check.yml`), więc wynik jest widoczny przy
 każdym commicie na GitHubie.
+
+24 listopada w izolowanym środowisku z PostgreSQL, RabbitMQ i Chrome przeszło
+25 testów Zamówień, 21 testów Zasobów i 11 scenariuszy Playwright. Sprawdzono
+formularz przyjęcia przy 390, 1280 i 1920 px oraz w emulacji skali 125% przy
+1536 px. Formularz receptury obejrzano również w układzie mobilnym.
+
 Do sprawdzenia pozostają przebieg od rezerwacji do doręczenia, obciążenie,
 odtwarzanie bazy i skalowanie systemowe interfejsu.
 
@@ -42,3 +51,5 @@ odtwarzanie bazy i skalowanie systemowe interfejsu.
 | U-10 | Porównanie wymagania FR-06 z działaniem wyszukiwarki | Wymaganie i API przewidują wyszukiwanie po alergenach, ale wyszukiwarka w menu sprawdzała tylko nazwę i opis dania. Wpisanie np. „gluten” nie zwracało dań z tym alergenem. |
 | U-11 | Konto pracownika utworzone w panelu Django z wielkimi literami w adresie | Panel zapisywał adres w podanej postaci, a logowanie porównuje adres zapisany małymi literami. Pracownik nie mógł zalogować się w aplikacji. Dodatkowo rejestracja przyjmowała adres dłuższy niż 254 znaki, który baza odrzucała błędem serwera. |
 | U-12 | Uruchomienie testów w GitHub Actions po zmianie odświeżania panelu zamówień | Aby zmniejszyć liczbę żądań, lista i szczegóły zamówień odświeżały się co 30 sekund, gdy żadne zamówienie nie czekało na magazyn. Test „po utracie sesji panel ukrywa zapisane dane” wykazał, że po wylogowaniu w innym miejscu dane zamówień pozostawały widoczne do 30 sekund, zamiast zniknąć po kilku sekundach. |
+| U-13 | Pierwszy pełny przebieg po dodaniu testów magazynu | Wszystkie przeglądarki testowe logowały się z jednego adresu. Po dziesięciu logowaniach w ciągu minuty serwer zwrócił `429`. Dwa scenariusze zakończyły się na ekranie logowania. |
+| U-14 | Oględziny formularza przyjęcia w Chrome przy szerokości 390 px | Pola składnika i ilości dzieliły jeden wiersz. Pole wyboru przycinało nazwę dłuższego składnika. |

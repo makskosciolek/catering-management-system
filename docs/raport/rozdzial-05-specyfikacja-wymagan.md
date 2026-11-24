@@ -11,8 +11,8 @@ systemu na elementy strukturalne architektury opisane w rozdziale 6.
 |---|---|---|---|---|
 | F-01 | Obsługa klienta | Rejestracja i logowanie, przeglądanie menu, koszyk, składanie zamówień, historia zamówień | Serwis zamówień (`orders`) | Zrealizowana (raport 1) |
 | F-02 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, dane kontaktowe, historia zamówień, alergeny i preferencje, reklamacje | Serwis zamówień (`orders`) | Częściowo: profil i historia |
-| F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia składników, rezerwacje i zapotrzebowanie na kolejne dni | Zasoby (`inventory`) | Przyjęcia i rezerwacje planowane na raport 2, planowanie zapotrzebowania na raport 3. |
-| F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Zasoby (`inventory`) | Opis w architekturze |
+| F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia, receptury, rezerwacje i zapotrzebowanie | Zasoby (`inventory`) | Działają ewidencja składników, przyjęcia, receptury i rezerwacje. Planowanie zapotrzebowania przewidziano na raport 3. |
+| F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Zasoby (`inventory`) | Przyjęcia zawierają nazwę dostawcy. Katalog i zamówienia składników należą do wizji pełnego produktu. |
 | F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Planowana (raport 2) |
 | F-06 | Dostawy | Przydział kierowcom według stref, statusy i potwierdzenie doręczenia | Realizacja (`fulfillment`) | Planowana (raport 2) |
 | F-07 | Zarządzanie personelem | Konta pracowników, role, grafik i wyznaczanie obsady | Zamówienia (`orders`) obsługują konta i role | Konta i role działają. Grafiki i planowanie obsady należą do wizji pełnego produktu. |
@@ -52,15 +52,16 @@ Macierz uprawnień (T – pełny dostęp, W – tylko własne dane, O – tylko 
 | Przegląd zamówień | W | – | – | – | O (wszystkie) | O (wszystkie) |
 | Podsumowanie zamówień i porcji | W | – | – | – | T | T |
 | Własny profil | W | W | W | W | W | W |
-| Stany magazynowe i rezerwacje | – | T | O | – | T | T |
+| Stany magazynowe i rezerwacje | – | T | O (docelowo) | – | O | T |
+| Przyjęcia i receptury | – | T | – | – | O | T |
 | Lista produkcyjna | – | O | T | – | T | T |
 | Dostawy | W (status) | – | – | W (przydzielone) | T | T |
 | Statystyki sprzedaży i wskaźniki dostaw | – | – | – | – | O | O |
 | Plan zapotrzebowania na składniki | – | – | – | – | O | O |
 | Konta i role użytkowników | – | – | – | – | O | T |
 
-W prototypie z raportu 1 działają wiersze dotyczące menu, zamówień, podsumowań
-i profilu; pozostałe opisują stan docelowy.
+W prototypie z raportu 1 działają menu, zamówienia, podsumowania, profile
+oraz panel Magazyn. Uprawnienia do kuchni, dostaw i prognoz opisują stan docelowy.
 
 ## 5.3 Interesariusze
 
@@ -114,10 +115,13 @@ Status **Z** oznacza funkcję działającą w prototypie, a **P** funkcję plano
 
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
-| FR-16 | Ewidencja składników | Magazynier wyświetla, dodaje, edytuje i usuwa składniki oraz ich stany. | Z (odczyt i dodawanie przez API), P (edycja i usuwanie) |
-| FR-17 | Receptury | Dla dania można zapisać listę składników z ilością na porcję. | Z (API) |
-| FR-18 | Rezerwacja składników | Po zdarzeniu `order.submitted` system rezerwuje składniki i przekazuje Zamówieniom wynik albo informację o brakach. | Z |
+| FR-16 | Ewidencja składników | Magazynier wyświetla stany, dodaje składniki, zapisuje dostawy i przegląda historię przyjęć. | Z (panel i API), P (edycja i usuwanie składników) |
+| FR-17 | Receptury | Dla dania można zapisać listę składników z ilością na porcję. | Z (panel i API) |
+| FR-18 | Rezerwacja składników | Po `order.submitted` system rezerwuje składniki i przekazuje Zamówieniom wynik. Po uzupełnieniu zapasu lub receptury magazynier może ponowić rezerwację. | Z |
 | FR-19 | Zapotrzebowanie na składniki | Moduł planowania w Zasobach przelicza zamówione i prognozowane porcje na ilości składników według receptur. | P |
+
+Wizja pełnego produktu obejmuje także ewidencję wyposażenia. Pracownicy
+przeglądają wykaz sprzętu i akcesoriów używanych w kuchni oraz przy dostawach.
 
 ### 5.4.5 Planowanie operacyjne i dostawy
 
@@ -223,13 +227,15 @@ flowchart LR
         uc3("Złożenie zamówienia")
         uc4("Przegląd własnych zamówień")
         uc5("Edycja profilu")
-        uc6("Rezerwacja składników")
-        uc7("Lista produkcyjna")
-        uc8("Realizacja dostawy")
+        uc6("Podgląd stanów i rezerwacji")
+        uc7("Lista produkcyjna (plan)")
+        uc8("Realizacja dostawy (plan)")
         uc9("Panel wszystkich zamówień")
         uc10("Zarządzanie menu")
-        uc11("Statystyki i prognozy")
+        uc11("Statystyki i prognozy (plan)")
         uc12("Zarządzanie kontami i rolami")
+        uc13("Dodawanie składników i przyjęć")
+        uc14("Zapisywanie receptur i ponawianie rezerwacji")
     end
 
     klient --> uc1
@@ -238,11 +244,19 @@ flowchart LR
     klient --> uc4
     klient --> uc5
     magazynier --> uc6
+    magazynier --> uc13
+    magazynier --> uc14
     kuchnia --> uc7
     kierowca --> uc8
     menedzer --> uc9
     menedzer --> uc10
     menedzer --> uc11
+    menedzer --> uc6
     admin --> uc10
     admin --> uc12
+    admin --> uc6
+    admin --> uc13
+    admin --> uc14
 ```
+
+[Diagram przypadków użycia w PNG](../diagramy/01-przypadki-uzycia.png)

@@ -16,8 +16,9 @@ W tabeli powiązano usterki z konkretną zmianą i sposobem sprawdzenia.
 | U-10 | [menu-page.tsx](../../frontend/src/menu-page.tsx) | Wyszukiwarka uwzględnia nazwę, opis i alergeny. Podpowiedź w polu informuje o wyszukiwaniu po alergenach. | Sprawdzenie ręczne: wyszukanie dań po nazwie alergenu z danych demonstracyjnych. |
 | U-11 | [accounts/models.py](../../backend/services/orders/src/cateringhub_orders/accounts/models.py), [migracja 0002](../../backend/services/orders/src/cateringhub_orders/accounts/migrations/0002_normalize_emails.py), [accounts/serializers.py](../../backend/services/orders/src/cateringhub_orders/accounts/serializers.py) | Model konta zapisuje adres e-mail małymi literami przy każdym zapisie, także z panelu Django. Migracja ujednolica adresy zapisane wcześniej. Rejestracja ogranicza adres do 254 znaków, zgodnie z długością pola w bazie. | Testy API: konto zapisane z wielkimi literami ma adres po normalizacji i loguje się w API; zbyt długi adres przy rejestracji kończy się błędem walidacji `400`. |
 | U-12 | [orders-pages.tsx](../../frontend/src/orders-pages.tsx) | Zmianę wycofano i przywrócono odświeżanie co 2 sekundy. Ograniczenie liczby żądań wymaga osobnego sposobu wykrywania utraty sesji, który nie opiera się na odświeżaniu listy. | Ponowne uruchomienie testów w GitHub Actions, w tym testu ukrywania danych po utracie sesji. |
+| U-13 | [Ustawienia testów](../../backend/services/orders/e2e_settings.py) i [uruchamianie testów](../../scripts/test-e2e.mjs) | Serwer Zamówień uruchamiany dla Playwrighta używa osobnego limitu 60 logowań na minutę. Zwykłe uruchomienie aplikacji korzysta z limitu 10 logowań na minutę. | Ponowne uruchomienie całego zestawu przeszło, w tym oba scenariusze zatrzymane wcześniej na logowaniu. |
+| U-14 | [Formularze magazynu](../../frontend/src/warehouse-forms.tsx) i [style magazynu](../../frontend/src/warehouse.module.css) | W układzie mobilnym wybór składnika ma cały wiersz, a pole ilości jest poniżej. | Oględziny formularza w Chrome przy 390 px i kontrola, że strona mieści się bez przewijania w poziomie. |
 
-Dalsze poprawki będą rejestrowane razem ze scenariuszem, który ujawnił błąd,
-i wynikiem ponownego sprawdzenia. Przy dodaniu odbiorcy magazynowego pierwszą
-próbą będzie dwukrotne dostarczenie tego samego zdarzenia i sprawdzenie,
-czy stan zmienił się tylko raz.
+Po podłączeniu Realizacji trzeba sprawdzić pełny przebieg od rezerwacji do
+doręczenia. Jedna z prób powinna dwukrotnie dostarczyć zdarzenie `order.prepared`
+i potwierdzić pojedyncze odjęcie składników z zapasu.

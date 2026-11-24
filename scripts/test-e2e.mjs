@@ -169,7 +169,11 @@ try {
     ['orders', orders],
     ['inventory', inventory],
   ]) {
-    startServer('uv', manageArgs(service, 'runserver', '127.0.0.1:' + port, '--noreload'))
+    const settings = service === 'orders' ? ['--settings=e2e_settings'] : []
+    startServer(
+      'uv',
+      manageArgs(service, 'runserver', '127.0.0.1:' + port, '--noreload', ...settings),
+    )
     startServer('uv', manageArgs(service, 'publish_events', '--consume'))
   }
   startServer(process.execPath, [

@@ -15,7 +15,8 @@ import { canViewOrders, canViewWarehouse, homeFor, sessionKey, useSession } from
 import { AuthPage, ProfilePage } from './auth-pages'
 import { MenuPage, type Basket } from './menu-page'
 import { OrderDetailPage, OrdersPage } from './orders-pages'
-import { WarehouseOverview } from './warehouse-overview'
+import { WarehouseReceipts, WarehouseRecipes } from './warehouse-forms'
+import { WarehouseLayout, WarehouseOverview } from './warehouse-overview'
 import { ErrorBox, Icon, Loading } from './ui'
 import styles from './app.module.css'
 
@@ -219,10 +220,14 @@ export function App() {
           path="/warehouse"
           element={
             <Protected allows={canViewWarehouse}>
-              <WarehouseOverview />
+              <WarehouseLayout />
             </Protected>
           }
-        />
+        >
+          <Route index element={<WarehouseOverview />} />
+          <Route path="receipts" element={<WarehouseReceipts />} />
+          <Route path="recipes" element={<WarehouseRecipes />} />
+        </Route>
         <Route
           path="/profile"
           element={

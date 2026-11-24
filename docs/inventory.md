@@ -48,6 +48,22 @@ Rozwinięcie rezerwacji pokazuje także ilości zwolnione po anulowaniu oraz ilo
 zużyte po przygotowaniu. Menedżer i administrator otwierają **Magazyn** z menu
 i mogą przejść stamtąd do szczegółów zamówienia.
 
+Magazynier i administrator wykonują operacje zapisu w panelu.
+
+1. W widoku **Stan i rezerwacje** wybierz **Dodaj składnik**. Podaj nazwę,
+   jednostkę i próg minimum.
+2. W zakładce **Przyjęcia** podaj dostawcę oraz ilości przyjętych składników.
+   Po zapisie dostawa pojawia się w historii, a dostępny zapas rośnie.
+3. W zakładce **Receptury** wybierz danie i zapisz ilości składników na jedną
+   porcję. Z pozycji z brakującą recepturą można od razu otworzyć właściwe danie.
+4. Po pokryciu braków wybierz **Ponów rezerwację**. Wynik pojawia się w panelu
+   i wraca przez RabbitMQ do zamówienia klienta.
+
+Jeśli odpowiedź po zapisie dostawy zaginie, przycisk **Ponów zapis przyjęcia**
+wysyła te same dane z tym samym identyfikatorem. Próba jest dostępna także po
+odświeżeniu bieżącej karty przez to samo konto. Zapas rośnie tylko raz.
+Menedżer może odczytać historię przyjęć i receptury.
+
 Do bezpośredniego sprawdzenia API użyj konta `magazyn@smakbox.example` z hasłem ze
 [skryptu demonstracyjnego](../backend/services/orders/src/cateringhub_orders/sales/management/commands/seed_demo.py).
 Polecenia niżej korzystają ze wspólnego adresu Vite dla obu API.
@@ -69,9 +85,8 @@ i [Swagger UI](http://localhost:5173/api/inventory/v1/docs/). Przy żądaniach
 
 ## 3. Co zostało
 
-1. Dodać formularze prowadzenia magazynu i testy przeglądarkowe operacji zapisu.
-2. Podłączyć Realizację jako nadawcę `order.prepared`.
-3. Wyliczać plan zapotrzebowania.
+1. Podłączyć Realizację jako nadawcę `order.prepared`.
+2. Wyliczać plan zapotrzebowania.
 
 ## 4. Odzyskiwanie zdarzeń
 

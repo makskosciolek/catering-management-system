@@ -28,4 +28,4 @@
 
 Rozdziały 1–10 tworzą wersję roboczą pierwszego raportu. Rozdział 6 zawiera
 odsyłacze do diagramów, a rozdziały 8–10 dokumentują działający zakres
-Zamówień i aplikacji webowej.
+Zamówień, Zasobów i aplikacji webowej.

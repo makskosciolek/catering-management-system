@@ -1,21 +1,23 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link } from 'react-router'
-import { api, menuKey } from './api/client'
+import { Link, NavLink, Outlet, useMatch, useOutletContext } from 'react-router'
+import { api, menuKey, type User } from './api/client'
 import {
+  ingredientListQuery,
   inventoryApi,
-  inventoryKey,
+  inventoryKeys,
+  inventoryRefreshInterval,
   type Ingredient,
   type Reservation,
 } from './api/inventory-client'
 import { ApiError } from './api/transport'
 import { dateLabel, orderCode, stockQuantity } from './format'
-import { isManagement, useSession } from './session'
+import { canEditWarehouse, isManagement, useSession } from './session'
 import { ErrorBox, Icon, Loading, PageControls, StatusPill, type StatusTone } from './ui'
+import { IngredientForm, QuantityList } from './warehouse-forms'
 import styles from './app.module.css'
 import warehouse from './warehouse.module.css'
 
-const refreshInterval = 5000
 const statusLabels: Record<
   Reservation['status'],
   { label: string; tone: StatusTone; quantities?: string }
@@ -26,19 +28,53 @@ const statusLabels: Record<
   consumed: { label: 'Zużyto składniki', tone: 'neutral', quantities: 'Zużyte ilości' },
 }
 
+export function WarehouseLayout() {
+  const user = useSession(inventoryRefreshInterval).data
+  const onOverview = useMatch('/warehouse')
+  if (!user) return null
+
+  return (
+    <section className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h1>Magazyn</h1>
+        <div className={warehouse.actions}>
+          {onOverview && (
+            <a
+              className={`${styles.smallButton} ${warehouse.jumpLink}`}
+              href="#warehouse-reservations"
+            >
+              Przejdź do rezerwacji
+            </a>
+          )}
+          {onOverview && canEditWarehouse(user) && (
+            <Link className={styles.primaryButton} to="/warehouse/receipts">
+              <Icon name="plus" size={17} />
+              Zarejestruj przyjęcie
+            </Link>
+          )}
+        </div>
+      </div>
+      <nav className={warehouse.tabs} aria-label="Widoki magazynu">
+        <NavLink to="/warehouse" end>
+          Stan i rezerwacje
+        </NavLink>
+        <NavLink to="/warehouse/receipts">Przyjęcia</NavLink>
+        <NavLink to="/warehouse/recipes">Receptury</NavLink>
+      </nav>
+      <Outlet key={user.id} context={user} />
+    </section>
+  )
+}
+
 export function WarehouseOverview() {
-  const user = useSession().data
+  const user = useOutletContext<User>()
   const [onlyLow, setOnlyLow] = useState(false)
   const [page, setPage] = useState(1)
-  const stock = useQuery({
-    queryKey: [...inventoryKey, user?.id, 'ingredients'],
-    queryFn: inventoryApi.ingredients,
-    refetchInterval: refreshInterval,
-  })
+  const stock = useQuery(ingredientListQuery(user.id))
   const reservations = useQuery({
-    queryKey: [...inventoryKey, user?.id, 'reservations', page],
+    queryKey: [...inventoryKeys.reservations(user.id), page],
     queryFn: () => inventoryApi.reservations(page),
-    refetchInterval: refreshInterval,
+    refetchInterval: inventoryRefreshInterval,
   })
   const denied = [stock.error, reservations.error].find(
     (error) => error instanceof ApiError && error.status === 403,
@@ -54,23 +90,10 @@ export function WarehouseOverview() {
   const lowStock = ingredients?.filter((item) => item.below_minimum)
   const visible = onlyLow ? lowStock : ingredients
 
-  if (denied) {
-    return (
-      <section className={styles.section}>
-        <h1>Magazyn</h1>
-        <ErrorBox error={denied} />
-      </section>
-    )
-  }
+  if (denied) return <ErrorBox error={denied} />
 
   return (
-    <section className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h1>Magazyn</h1>
-        <a className={styles.smallButton + ' ' + warehouse.jumpLink} href="#warehouse-reservations">
-          Przejdź do rezerwacji
-        </a>
-      </div>
+    <>
       {ingredients && (
         <div className={styles.metrics}>
           <div>
@@ -119,6 +142,7 @@ export function WarehouseOverview() {
                 {onlyLow ? 'Brak składników poniżej minimum.' : 'Magazyn nie ma składników.'}
               </p>
             ))}
+          {canEditWarehouse(user) && <IngredientForm userId={user.id} />}
         </section>
         <section
           className={styles.orderPanel + ' ' + warehouse.reservations}
@@ -155,7 +179,7 @@ export function WarehouseOverview() {
                     <ReservationRecord
                       key={item.order_id}
                       item={item}
-                      canOpenOrder={isManagement(user)}
+                      user={user}
                       mealNames={mealNames}
                     />
                   ))}
@@ -167,7 +191,7 @@ export function WarehouseOverview() {
             ))}
         </section>
       </div>
-    </section>
+    </>
   )
 }
 
@@ -208,19 +232,30 @@ function StockTable({ items }: { items: Ingredient[] }) {
 
 function ReservationRecord({
   item,
-  canOpenOrder,
+  user,
   mealNames,
 }: {
   item: Reservation
-  canOpenOrder: boolean
+  user: User
   mealNames: Map<string, string>
 }) {
   const state = statusLabels[item.status]
+  const canEdit = canEditWarehouse(user)
+  const queryClient = useQueryClient()
+  const retry = useMutation({
+    mutationFn: () => inventoryApi.retryReservation(item.order_id),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: inventoryKeys.reservations(user.id) }),
+        queryClient.invalidateQueries({ queryKey: inventoryKeys.ingredients(user.id) }),
+      ])
+    },
+  })
   return (
     <li className={warehouse.record}>
       <div className={warehouse.recordHeading}>
         <div>
-          {canOpenOrder ? (
+          {isManagement(user) ? (
             <Link to={'/orders/' + item.order_id}>{orderCode(item.order_id)}</Link>
           ) : (
             <strong>{orderCode(item.order_id)}</strong>
@@ -242,24 +277,40 @@ function ReservationRecord({
             </li>
           ))}
           {item.missing_recipes.map((id) => (
-            <li key={id}>Brak receptury dla dania {mealNames.get(id) ?? id}</li>
+            <li key={id}>
+              Brak receptury dla dania {mealNames.get(id) ?? id}
+              {canEdit && (
+                <>
+                  {' · '}
+                  <Link to="/warehouse/recipes" state={{ mealId: id }}>
+                    Uzupełnij recepturę
+                  </Link>
+                </>
+              )}
+            </li>
           ))}
           {!item.shortages.length && !item.missing_recipes.length && (
             <li>Brak szczegółów rezerwacji.</li>
           )}
         </ul>
       )}
+      {item.status === 'shortage' && canEdit && (
+        <div className={warehouse.recordActions}>
+          <button
+            type="button"
+            className={styles.smallButton}
+            disabled={retry.isPending}
+            onClick={() => retry.mutate()}
+          >
+            {retry.isPending ? 'Ponawianie…' : 'Ponów rezerwację'}
+          </button>
+          {retry.isError && <ErrorBox error={retry.error} />}
+        </div>
+      )}
       {state.quantities && item.lines.length > 0 && (
         <details className={warehouse.allocation}>
           <summary>{state.quantities}</summary>
-          <ul>
-            {item.lines.map((line) => (
-              <li key={line.ingredient_id}>
-                <span>{line.name}</span>
-                <strong>{stockQuantity(line.quantity, line.unit)}</strong>
-              </li>
-            ))}
-          </ul>
+          <QuantityList lines={item.lines} />
         </details>
       )}
     </li>

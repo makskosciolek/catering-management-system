@@ -2,7 +2,7 @@ import type { Unit } from './api/inventory-client'
 
 const moneyFormat = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' })
 const stockFormat = new Intl.NumberFormat('pl-PL', { maximumFractionDigits: 3 })
-const unitLabel: Record<Unit, string> = { kg: 'kg', l: 'l', pcs: 'szt.' }
+export const unitLabel: Record<Unit, string> = { kg: 'kg', l: 'l', pcs: 'szt.' }
 const dateFormat = new Intl.DateTimeFormat('pl-PL', {
   dateStyle: 'medium',
   timeZone: 'Europe/Warsaw',

@@ -44,8 +44,8 @@ baza danych. Zachowuje prostotę wdrożenia i porządkuje kod, ale moduły nadal
 dzielą proces i bazę, więc nie da się ich skalować ani wdrażać niezależnie.
 
 **C. Serwisy funkcji biznesowych sterowane zdarzeniami.** Kilka niezależnych
-serwisów odpowiadających funkcjom głównym (zamówienia, magazyn, realizacja,
-analityka). Każdy ma własną bazę danych, a serwisy komunikują się asynchronicznie
+serwisów odpowiadających funkcjom głównym (Zamówienia, Zasoby i Realizacja).
+Każdy ma własną bazę danych, a serwisy komunikują się asynchronicznie
 przez broker komunikatów. Styl łączy cechy architektury mikroserwisowej
 i architektury opartej na zdarzeniach.
 
@@ -86,12 +86,12 @@ Skala ocen 1–5 (5 – najlepiej). Wagi wynikają z wymagań niefunkcjonalnych.
   można je skalować niezależnie. Każda usługa dostarcza wskaźniki ze swojego obszaru;
 - każdy serwis ma dostęp tylko do własnych danych, co ułatwia spełnienie
   wymagań ochrony danych osobowych;
-- kolejne funkcje (księgowość, dostawcy) można dodać jako nowe serwisy
-  odbierające istniejące zdarzenia, bez zmian w działającym kodzie.
+- Zasoby można rozszerzyć o katalog dostawców. Rozliczenia przewidziano
+  jako integrację z zewnętrznym systemem księgowym.
 
-Ryzyko złożoności ograniczono przez: tylko trzy serwisy w prototypie, jeden
-mechanizm komunikacji między nimi, wspólny zestaw narzędzi oraz wzorzec skrzynki
-nadawczej (outbox) chroniący przed utratą zdarzeń.
+Ryzyko złożoności ogranicza plan trzech serwisów, wspólny zestaw narzędzi
+i jeden mechanizm wymiany zdarzeń. Przed utratą zdarzeń chroni wzorzec
+skrzynki nadawczej (outbox).
 
 Zamówienia odpowiadają za statystyki sprzedaży, Realizacja za wskaźniki
 dostaw, a Zasoby za planowanie zapotrzebowania na składniki. Panel menedżera
@@ -166,11 +166,11 @@ flowchart TB
 
 | Proces biznesowy | Aktor | Usługa biznesowa | Interfejs |
 |---|---|---|---|
-| Przyjęcie zamówienia | Klient | Zamawianie posiłków przez Internet | Aplikacja webowa: menu, koszyk, zamówienia |
-| Rezerwacja składników | Magazynier | Zapewnienie składników na zamówione posiłki | Panel magazynu |
-| Produkcja posiłków | Pracownik kuchni | Przygotowanie posiłków na dany dzień | Lista produkcyjna |
-| Dostawa | Kierowca | Doręczenie posiłków pod wskazany adres | Lista dostaw na telefonie |
-| Analiza i planowanie | Menedżer | Planowanie składników i ocena sprzedaży oraz dostaw | Panel menedżera z widokami sprzedaży, dostaw i zapotrzebowania |
+| Przyjęcie zamówienia | Klient | Zamawianie posiłków przez Internet | Portal klienta i API Zamówień |
+| Przyjęcie dostawy i rezerwacja składników | Magazynier | Ewidencja zapasu i jego przydział do zamówień | Panel Magazyn i API Zasobów |
+| Produkcja posiłków | Pracownik kuchni | Przygotowanie posiłków na dany dzień | Lista produkcyjna w Realizacji (plan) |
+| Dostawa | Kierowca | Doręczenie posiłków pod wskazany adres | Lista dostaw w Realizacji (plan) |
+| Analiza i planowanie | Menedżer | Planowanie składników i ocena sprzedaży oraz dostaw | Panel menedżera z danymi z trzech serwisów (częściowo) |
 
 ### 6.3.2 Poziom aplikacji
 
@@ -182,9 +182,11 @@ flowchart TB
 | Realizacja (`fulfillment`) | Lista produkcyjna, przydział i statusy dostaw oraz wskaźniki dostaw | F-05, F-06, F-09 (dostawy) | REST API, zdarzenia |
 | Szyna zdarzeń | Przekazywanie zdarzeń biznesowych między serwisami | integracja | AMQP |
 
-W prototypie działają aplikacja webowa, Zamówienia i API Zasobów. Zamówienia
-prowadzą konta, zamówienia i liczniki. Zasoby obsługują przyjęcia, receptury
-i rezerwacje, a wynik rezerwacji wraca do Zamówień przez RabbitMQ.
+W prototypie działają aplikacja webowa oraz serwisy Zamówień i Zasobów.
+Zamówienia prowadzą konta, zamówienia i liczniki. Panel Magazyn odczytuje
+stany i rezerwacje przez API Zasobów. Magazynier i administrator dodają
+składniki, przyjmują dostawy, zapisują receptury i ponawiają rezerwacje.
+Wynik rezerwacji wraca do Zamówień przez RabbitMQ.
 Obsługa kuchni, dostaw i ich wskaźników oraz planowanie zapotrzebowania
 są planowane. Zamówienia mają zostać rozszerzone o wartość sprzedaży
 i popularność dań.
@@ -211,11 +213,11 @@ dekompozycję na moduły, wzorzec warstwowy wewnątrz serwisu oraz model danych.
 | `frontend` | Interfejs użytkownika, komunikacja z API | kontrakt OpenAPI serwisów |
 | `orders.accounts` | Użytkownicy, role, rejestracja, logowanie, profil | – |
 | `orders.sales` | Menu, zamówienia, statystyki sprzedaży i skrzynka nadawcza zdarzeń | `orders.accounts` |
-| `inventory` | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Zdarzenia o zamówieniach, dane magazynowe |
+| `inventory.stock` | Przyjęcia składników, receptury i rezerwacje. Moduł planowania zapotrzebowania jest przewidziany w Zasobach. | Zdarzenia o zamówieniach, własna baza, API Zamówień sprawdzające aktualne role |
 | `fulfillment` | Produkcja, dostawy i wskaźniki ich wykonania | Zdarzenia o rezerwacjach, dane o realizacji dostaw |
 
 Każdy mikroserwis ma własną bazę i korzysta z danych, które zapisuje sam albo
-otrzymuje przez publiczne kontrakty. Zasoby będą zapisywać dane ze zdarzeń
+otrzymuje przez ustalone kontrakty. Zasoby zapisują dane ze zdarzeń
 o zamówieniach, w tym identyfikatory dań, liczbę porcji i termin dostawy.
 Moduł planowania wykorzysta tę historię i receptury do wyliczenia potrzebnych
 ilości składników. Przeliczanie prognozy i składanie zamówień są odrębnymi operacjami.
@@ -237,7 +239,7 @@ flowchart TB
 
 | Warstwa | Elementy w serwisie zamówień |
 |---|---|
-| Interfejs | `urls.py`, `accounts/views.py`, `sales/views.py`, `accounts/authentication.py` |
+| Interfejs | `urls.py`, `accounts/views.py`, `sales/views.py`, wspólne `cateringhub_core/auth.py` |
 | Kontrakt | `accounts/serializers.py`, `sales/serializers.py` |
 | Logika biznesowa i proces zdarzeń | `sales/services.py`, `sales/events.py`, wspólne `cateringhub_core/messaging.py` i `cateringhub_core/worker.py` |
 | Dostęp do danych | `accounts/models.py`, `sales/models.py`, migracje |
@@ -306,6 +308,70 @@ Pozycja zamówienia przechowuje kopię nazwy i ceny dania z chwili zakupu.
 Ograniczenia w bazie danych dodatkowo pilnują, by cena i liczba porcji były
 dodatnie, a danie nie powtarzało się w jednym zamówieniu.
 
+### 6.4.4 Model danych Zasobów
+
+Zasoby zapisują stan fizyczny i zarezerwowaną ilość dla każdego składnika.
+Dostępny zapas to różnica tych wartości. Przyjęcia, receptury i rezerwacje
+odwołują się do składników przez pozycje z ilością. Identyfikatory `meal_id`,
+`order_id` i `received_by` pochodzą z Zamówień. Zasoby przechowują je jako UUID.
+
+```mermaid
+erDiagram
+    INGREDIENT ||--o{ RECEIPT_LINE : "występuje w"
+    INGREDIENT ||--o{ RECIPE_LINE : "występuje w"
+    INGREDIENT ||--o{ RESERVATION_LINE : "występuje w"
+    RECEIPT ||--|{ RECEIPT_LINE : zawiera
+    RECIPE ||--|{ RECIPE_LINE : zawiera
+    RESERVATION ||--o{ RESERVATION_LINE : przydziela
+
+    INGREDIENT {
+        uuid id PK
+        string name UK
+        string unit
+        decimal minimum
+        decimal on_hand
+        decimal reserved
+    }
+    RECEIPT {
+        uuid id PK
+        string supplier
+        datetime received_at
+        uuid received_by
+    }
+    RECEIPT_LINE {
+        bigint id PK
+        uuid receipt_id FK
+        uuid ingredient_id FK
+        decimal quantity
+    }
+    RECIPE {
+        uuid meal_id PK
+    }
+    RECIPE_LINE {
+        bigint id PK
+        uuid recipe_id FK
+        uuid ingredient_id FK
+        decimal quantity
+    }
+    RESERVATION {
+        uuid order_id PK
+        date delivery_date
+        string status
+        integer attempt
+    }
+    RESERVATION_LINE {
+        bigint id PK
+        uuid reservation_id FK
+        uuid ingredient_id FK
+        decimal quantity
+    }
+```
+
+[Diagram modelu danych Zasobów w PNG](../diagramy/08-model-danych-zasobow.png)
+
+Tabele `ProcessedEvent` i `OutboxEvent` przechowują odpowiednio identyfikatory
+odebranych zdarzeń i wyniki rezerwacji do publikacji.
+
 ## 6.5 Wzorzec komponentowo-łącznikowy
 
 Wzorce komponentowo-łącznikowe opisują system w czasie działania: komponenty
@@ -319,7 +385,7 @@ Tabela i diagram przedstawiają planowaną współpracę trzech mikroserwisów.
 |---|---|
 | Aplikacja webowa | Klient interfejsu REST, działa w przeglądarce |
 | Zamówienia (API) | Zapisuje zamówienia i dane w skrzynce nadawczej. Udostępnia statystyki sprzedaży. |
-| Zasoby (API) | Udostępnia stany, rezerwacje i plan zapotrzebowania. |
+| Zasoby (API) | Obsługuje składniki, przyjęcia, receptury i rezerwacje. Plan zapotrzebowania jest przewidziany w dalszej pracy. |
 | Realizacja (API) | Udostępnia listę produkcyjną, dostawy i wskaźniki dostaw. |
 | Procesy zdarzeń | Publikują wpisy ze skrzynki nadawczej i obsługują zdarzenia z kolejek przypisanych usługom. |
 | Broker komunikatów | Rozdziela zdarzenia do kolejek subskrybentów |
@@ -328,6 +394,7 @@ Tabela i diagram przedstawiają planowaną współpracę trzech mikroserwisów.
 | Łącznik | Między | Styl | Charakter |
 |---|---|---|---|
 | HTTP/REST, JSON | Aplikacja webowa i serwis | klient-serwer | synchroniczny |
+| HTTP/REST, JSON | Zasoby i Zamówienia | sprawdzenie aktywności konta i jego aktualnej roli | synchroniczny |
 | SQL | Serwis i jego baza | dostęp do danych | synchroniczny |
 | AMQP, wymiana typu `topic` | Publikator, broker, subskrybenci | publikuj-subskrybuj | asynchroniczny |
 
@@ -386,7 +453,13 @@ sequenceDiagram
         P->>D: Oznacz jako opublikowane
     end
     R->>M: Dostarcz zdarzenie
-    M->>M: Rezerwacja składników
+    M->>M: Zapisz wynik rezerwacji i wpis w outboxie
+    M->>R: Publikuj stock.reserved lub stock.shortage
+    R->>O: Dostarcz wynik rezerwacji
+    O->>D: Zapisz status i numer próby
+    W->>O: Pobierz szczegóły zamówienia
+    O-->>W: Aktualny status zamówienia
+    W-->>K: Wynik rezerwacji
 ```
 
 Zastosowano wzorzec skrzynki nadawczej (transactional outbox). Zdarzenie jest
@@ -455,12 +528,12 @@ flowchart TB
 |---|---|---|
 | Aplikacja webowa | Serwer deweloperski Vite, port 5173 | Pliki statyczne za reverse proxy |
 | Zamówienia | Proces Django, port 8001 | Kontener API |
-| Zasoby | Planowane | Kontener API |
+| Zasoby | Proces Django, port 8002 | Kontener API |
 | Realizacja | Planowana | Kontener API |
-| Procesy zdarzeń | Polecenie uruchamiane lokalnie dla Zamówień | Oddzielny kontener dla każdej usługi |
+| Procesy zdarzeń | Osobne polecenia `publish_events` dla Zamówień i Zasobów | Oddzielny kontener dla każdej usługi |
 | PostgreSQL | Kontener Docker Compose, port 55432 | Usługa bazy danych z kopiami zapasowymi |
 | RabbitMQ | Kontener Docker Compose, porty 5672 i 15672 | Kontener lub usługa zarządzana |
-| Kierowanie ruchu `/api/orders` | Proxy serwera Vite | Reverse proxy |
+| Kierowanie ruchu `/api/orders` i `/api/inventory` | Proxy serwera Vite | Reverse proxy |
 
 Środowisko demonstracyjne opiera się na Docker Compose. Próbę uruchomienia
 na Kubernetes zaplanowano po sprawdzeniu pełnego procesu w Compose. W docelowym
