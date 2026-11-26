@@ -61,8 +61,8 @@ Szczegółowe uzasadnienie wyboru technologii zawiera rozdział 7.
 | Etap | Termin |
 |---|---|
 | Analiza biznesowa, specyfikacja wymagań, projekt architektury | do 13.11.2026 |
-| Implementacja pierwszej funkcji głównej i testy (raport 1) | do 01.12.2026 |
-| Implementacja pozostałych funkcji, wdrożenie, dokumentacja użytkownika (raport 2) | do 15.12.2026 |
+| Implementacja i testy procesu od zamówienia przez magazyn i kuchnię do wyniku dostawy (raport 1) | do 01.12.2026 |
+| Pakiet wdrożeniowy, pilotaż, poprawki po wdrożeniu i dokumentacja użytkownika (raport 2) | do 15.12.2026 |
 | Utrzymanie, aktualizacje, planowanie i kontrola, wnioski (raport 3) | do 12.01.2027 |
 | Obrona projektu | do 25.01.2027 |
 
@@ -186,9 +186,9 @@ implementacji poszczególnych funkcji opisano w rozdziałach 5 i 8.
 | Obsługa klienta | Portal klienta: rejestracja, logowanie, menu i diety, składanie i przegląd zamówień | Tak |
 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, historia zamówień, preferencje, alergeny, reklamacje | Częściowo (profil, historia, alergeny) |
 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania | Tak |
-| Dostawy | Przydział kierowcom, statusy i wskaźniki dostaw w Realizacji | Tak |
-| Statystyki sprzedaży | Podsumowania zamówień, porcji i sprzedaży oraz popularność dań w Zamówieniach | Tak |
-| Planowanie zapotrzebowania | Moduł Zasobów przelicza zamówienia i prognozowaną liczbę porcji na ilości składników według receptur | Tak |
+| Dostawy | Ręczny przydział kierowcom, statusy i dzienne podsumowanie dostaw w Realizacji | Tak, przydział według stref przewidziano w dalszym rozwoju |
+| Statystyki sprzedaży | Podsumowania zamówień, porcji i sprzedaży oraz popularność dań w Zamówieniach | Częściowo (liczba zamówień i porcji) |
+| Planowanie zapotrzebowania | Wyliczanie ilości składników z zamówionych porcji i receptur, a następnie z prognoz popytu | Dalszy rozwój |
 | Zarządzanie personelem | Konta pracowników, role, grafiki i wyznaczanie obsady | Częściowo (konta i role) |
 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników | Nie (opis w architekturze) |
 | Księgowość | Faktury, płatności, rozliczenia | Nie (integracja z systemem zewnętrznym opisana w architekturze) |
@@ -210,8 +210,7 @@ implementacji poszczególnych funkcji opisano w rozdziałach 5 i 8.
 
 - rzeczywiste płatności online (w prototypie symulowane, docelowo integracja
   z zewnętrznym operatorem płatności);
-- optymalizacja tras dostaw z wykorzystaniem map (w prototypie uproszczony
-  przydział dostaw do kierowców według stref);
+- przydział dostaw według stref i optymalizacja tras z wykorzystaniem map;
 - natywna aplikacja mobilna (zastąpiona responsywnym interfejsem webowym);
 - obsługa wielu firm kateringowych w jednej instancji systemu.
 

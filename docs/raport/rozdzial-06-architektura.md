@@ -182,14 +182,15 @@ flowchart TB
 | Realizacja (`fulfillment`) | Lista produkcyjna, przydział i statusy dostaw oraz wskaźniki dostaw | F-05, F-06, F-09 (dostawy) | REST API, zdarzenia |
 | Szyna zdarzeń | Przekazywanie zdarzeń biznesowych między serwisami | integracja | AMQP |
 
-W prototypie działają aplikacja webowa oraz serwisy Zamówień i Zasobów.
+W prototypie działają aplikacja webowa oraz API i procesy zdarzeń trzech serwisów.
 Zamówienia prowadzą konta, zamówienia i liczniki. Panel Magazyn odczytuje
 stany i rezerwacje przez API Zasobów. Magazynier i administrator dodają
 składniki, przyjmują dostawy, zapisują receptury i ponawiają rezerwacje.
 Wynik rezerwacji wraca do Zamówień przez RabbitMQ.
-Obsługa kuchni, dostaw i ich wskaźników oraz planowanie zapotrzebowania
-są planowane. Zamówienia mają zostać rozszerzone o wartość sprzedaży
-i popularność dań.
+Realizacja sprawdza aktualne role w Zamówieniach i odbiera zdarzenia przez
+RabbitMQ. Obsługa produkcji i dostaw należy do kolejnych etapów Raportu 1.
+Prognozy, planowanie zapotrzebowania i pełniejsze statystyki sprzedaży należą
+do dalszego rozwoju.
 
 ### 6.3.3 Poziom technologiczny
 
@@ -214,7 +215,7 @@ dekompozycję na moduły, wzorzec warstwowy wewnątrz serwisu oraz model danych.
 | `orders.accounts` | Użytkownicy, role, rejestracja, logowanie, profil | – |
 | `orders.sales` | Menu, zamówienia, statystyki sprzedaży i skrzynka nadawcza zdarzeń | `orders.accounts` |
 | `inventory.stock` | Przyjęcia składników, receptury i rezerwacje. Moduł planowania zapotrzebowania jest przewidziany w Zasobach. | Zdarzenia o zamówieniach, własna baza, API Zamówień sprawdzające aktualne role |
-| `fulfillment` | Produkcja, dostawy i wskaźniki ich wykonania | Zdarzenia o rezerwacjach, dane o realizacji dostaw |
+| `fulfillment.operations` | Sesja, dane zamówień dla kuchni, docelowo produkcja i dostawy | Baza `fulfillment`, zdarzenia i API Zamówień sprawdzające aktualne role |
 
 Każdy mikroserwis ma własną bazę i korzysta z danych, które zapisuje sam albo
 otrzymuje przez ustalone kontrakty. Zasoby zapisują dane ze zdarzeń
@@ -379,14 +380,16 @@ i połączenia między nimi.
 
 ### 6.5.1 Komponenty i łączniki
 
-Tabela i diagram przedstawiają planowaną współpracę trzech mikroserwisów.
+Tabela i diagram pokazują działające połączenia oraz planowany przepływ
+produkcji i dostaw. Przerywane strzałki do i z wymiany oznaczają planowane
+zdarzenia, a strzałki do kolejek dead letter oznaczają odrzucone wiadomości.
 
 | Komponent | Rola |
 |---|---|
 | Aplikacja webowa | Klient interfejsu REST, działa w przeglądarce |
 | Zamówienia (API) | Zapisuje zamówienia i dane w skrzynce nadawczej. Udostępnia statystyki sprzedaży. |
 | Zasoby (API) | Obsługuje składniki, przyjęcia, receptury i rezerwacje. Plan zapotrzebowania jest przewidziany w dalszej pracy. |
-| Realizacja (API) | Udostępnia listę produkcyjną, dostawy i wskaźniki dostaw. |
+| Realizacja (API) | Udostępnia kontrolę stanu i sesji. Lista produkcyjna, dostawy i ich wyniki są planowane. |
 | Procesy zdarzeń | Publikują wpisy ze skrzynki nadawczej i obsługują zdarzenia z kolejek przypisanych usługom. |
 | Broker komunikatów | Rozdziela zdarzenia do kolejek subskrybentów |
 | Bazy danych | Trwałe przechowywanie danych każdego serwisu |
@@ -394,7 +397,7 @@ Tabela i diagram przedstawiają planowaną współpracę trzech mikroserwisów.
 | Łącznik | Między | Styl | Charakter |
 |---|---|---|---|
 | HTTP/REST, JSON | Aplikacja webowa i serwis | klient-serwer | synchroniczny |
-| HTTP/REST, JSON | Zasoby i Zamówienia | sprawdzenie aktywności konta i jego aktualnej roli | synchroniczny |
+| HTTP/REST, JSON | Zasoby lub Realizacja i Zamówienia | sprawdzenie aktywności konta i jego aktualnej roli | synchroniczny |
 | SQL | Serwis i jego baza | dostęp do danych | synchroniczny |
 | AMQP, wymiana typu `topic` | Publikator, broker, subskrybenci | publikuj-subskrybuj | asynchroniczny |
 
@@ -403,22 +406,24 @@ flowchart LR
     spa["Aplikacja webowa"]
     orders["Zamówienia"]
     inv["Zasoby"]
-    ful["Realizacja (plan)"]
+    ful["Realizacja"]
     ex{{"Wymiana cateringhub.events"}}
     q1["Kolejka Zasobów"]
     q2["Kolejka Zamówień"]
-    q3["Kolejka Realizacji (plan)"]
+    q3["Kolejka Realizacji"]
     dlq["Kolejki dead letter"]
 
     spa -- "REST" --> orders
     spa -- "REST" --> inv
-    spa -. "REST" .-> ful
-    orders -- "order.submitted" --> ex
+    spa -- "REST" --> ful
+    ful -- "Weryfikacja sesji" --> orders
+    orders -- "order.submitted, order.cancelled" --> ex
     ex -- "zamówienia" --> q1 --> inv
     inv -- "wynik rezerwacji" --> ex
     ex -- "wynik rezerwacji" --> q2 --> orders
-    ex -. "stock.reserved" .-> q3
-    q3 -.-> ful
+    ex -- "order.cancelled" --> q3 --> ful
+    orders -. "order.ready_for_fulfillment" .-> ex
+    ex -. "order.ready_for_fulfillment" .-> q3
     ful -. "zdarzenia kuchni i dostaw" .-> ex
     q1 -. "odrzucone wiadomości" .-> dlq
     q2 -.-> dlq
@@ -474,9 +479,10 @@ zdarzenie ma unikalny identyfikator, po którym odbiorca rozpoznaje duplikaty.
 | Zdarzenie | Publikuje | Odbiera | Status |
 |---|---|---|---|
 | `order.submitted` | Zamówienia | Zasoby | Działa publikacja i odbiór |
-| `stock.reserved` | Zasoby | Zamówienia i Realizacja | Działa odbiór w Zamówieniach. Odbiór w Realizacji jest planowany. |
+| `stock.reserved` | Zasoby | Zamówienia | Działa publikacja i odbiór |
 | `stock.shortage` | Zasoby | Zamówienia | Działa publikacja i odbiór |
-| `order.cancelled` | Zamówienia | Zasoby | Działa publikacja i zwolnienie składników |
+| `order.cancelled` | Zamówienia | Zasoby, Realizacja | Zasoby zwalniają składniki. Realizacja zapisuje anulowanie, także przed zdarzeniem gotowości. |
+| `order.ready_for_fulfillment` | Zamówienia | Realizacja | Odbiorca zapisuje datę dostawy, identyfikatory i nazwy dań oraz porcje. Publikacja po rezerwacji jest planowana w etapie 23. |
 | `order.prepared` | Realizacja | Zamówienia, Zasoby | Zasoby potrafią rozliczyć zużycie. Nadawca i odbiór w Zamówieniach są planowane. |
 | `delivery.assigned` | Realizacja | Zamówienia | Planowane |
 | `delivery.completed` | Realizacja | Zamówienia | Planowane |
@@ -529,15 +535,15 @@ flowchart TB
 | Aplikacja webowa | Serwer deweloperski Vite, port 5173 | Pliki statyczne za reverse proxy |
 | Zamówienia | Proces Django, port 8001 | Kontener API |
 | Zasoby | Proces Django, port 8002 | Kontener API |
-| Realizacja | Planowana | Kontener API |
-| Procesy zdarzeń | Osobne polecenia `publish_events` dla Zamówień i Zasobów | Oddzielny kontener dla każdej usługi |
+| Realizacja | Proces Django, port 8003 | Kontener API |
+| Procesy zdarzeń | Osobne polecenie `publish_events --consume` dla każdego serwisu | Oddzielny kontener dla każdej usługi |
 | PostgreSQL | Kontener Docker Compose, port 55432 | Usługa bazy danych z kopiami zapasowymi |
 | RabbitMQ | Kontener Docker Compose, porty 5672 i 15672 | Kontener lub usługa zarządzana |
-| Kierowanie ruchu `/api/orders` i `/api/inventory` | Proxy serwera Vite | Reverse proxy |
+| Kierowanie ruchu `/api/orders`, `/api/inventory`, `/api/fulfillment` | Proxy serwera Vite | Reverse proxy |
 
-Środowisko demonstracyjne opiera się na Docker Compose. Próbę uruchomienia
-na Kubernetes zaplanowano po sprawdzeniu pełnego procesu w Compose. W docelowym
-wdrożeniu każda usługa łączy się z własną bazą i może być uruchamiana niezależnie.
+Docker Compose uruchamia bazę i broker w środowisku deweloperskim. Raport 2
+obejmuje uruchomienie całej aplikacji w Compose i wdrożenie próbne. Każda
+usługa łączy się z własną bazą i może być uruchamiana niezależnie.
 
 ## 6.7 Wpływ architektury na atrybuty jakości
 

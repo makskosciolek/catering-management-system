@@ -7,6 +7,7 @@ export default defineConfig({
     proxy: {
       '/api/orders': process.env.CATERINGHUB_ORDERS_ORIGIN ?? 'http://127.0.0.1:8001',
       '/api/inventory': process.env.CATERINGHUB_INVENTORY_ORIGIN ?? 'http://127.0.0.1:8002',
+      '/api/fulfillment': process.env.CATERINGHUB_FULFILLMENT_ORIGIN ?? 'http://127.0.0.1:8003',
     },
   },
 })

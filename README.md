@@ -19,7 +19,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 |---|---|---|
 | Zamówienia (`orders`) | Konta, menu, koszyk, zamówienia, historia klienta i statystyki sprzedaży | Działają obsługa zamówień, publikacja zdarzeń oraz liczniki zamówień i porcji. Wartość sprzedaży i popularność dań są planowane. |
 | Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Panel obsługuje składniki, przyjęcia, receptury i ponowienia rezerwacji. Serwis rezerwuje składniki na podstawie zdarzeń zamówień. |
-| Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Planowana jest obsługa kuchni i kierowców oraz zestawienia dostaw doręczonych, nieudanych i terminowych. |
+| Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Działają API, baza, kolejka i weryfikacja sesji. Lista produkcyjna i obsługa dostaw są kolejnymi etapami Raportu 1. |
 
 ### Role użytkowników
 
@@ -47,8 +47,7 @@ uwzględnia również planowane role operacyjne.
 
 W środowisku demonstracyjnym Docker Compose uruchamia PostgreSQL i RabbitMQ.
 Docelowo w Compose osobne kontenery uruchomią API i proces obsługi zdarzeń
-każdego mikroserwisu. Próbę z Kubernetes zaplanowano po uruchomieniu pełnego
-przepływu zamówienia w Compose.
+każdego mikroserwisu. Pełny pakiet Compose i pilotaż są częścią Raportu 2.
 
 ## Uruchomienie lokalne
 
@@ -62,7 +61,7 @@ pwsh -File scripts/dev.ps1
 
 Pierwsze polecenie przygotowuje lokalny plik `.env`, uruchamia PostgreSQL
 i RabbitMQ, instaluje zależności, stosuje migracje i ładuje fikcyjne dane.
-Drugie uruchamia API i proces obsługi zdarzeń obu serwisów oraz Vite. Otwórz
+Drugie uruchamia API i proces obsługi zdarzeń trzech serwisów oraz Vite. Otwórz
 [CateringHub](http://localhost:5173/). Na ekranie logowania przyciski
 **Dane klienta**, **Dane menedżera** i **Dane magazyniera** uzupełniają lokalne
 dane demonstracyjne.
@@ -85,10 +84,13 @@ Zasoby zwalniają wtedy zarezerwowane składniki. Jeśli odpowiedź po złożeni
 zamówienia zaginie, koszyk pozwala sprawdzić zapis przed kolejną próbą.
 
 [Opis API Zamówień](http://localhost:5173/api/orders/v1/docs/),
-[opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/) i
+[opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/),
+[opis API Realizacji](http://localhost:5173/api/fulfillment/v1/docs/) i
 [panel Django](http://localhost:8001/api/orders/admin/) działają po uruchomieniu
-aplikacji. Polecenie `seed_demo` tworzy również lokalne konta administratora
-i magazyniera.
+aplikacji. Polecenie `seed_demo` tworzy też lokalne konta
+`kuchnia@smakbox.example` i `kierowca@smakbox.example` z tym samym hasłem co
+pozostałe konta demonstracyjne. Punkt `/api/fulfillment/v1/session/` zwraca
+aktualną rolę zalogowanego pracownika uprawnionego do Realizacji.
 
 Ctrl+C zatrzymuje procesy aplikacji. Logi znajdziesz w `.artifacts/dev/`.
 Jeśli chcesz zatrzymać też PostgreSQL i RabbitMQ, użyj `docker compose stop`.
@@ -100,8 +102,8 @@ Jeśli uruchamiasz kilka środowisk demonstracyjnych na jednym komputerze,
 użyj dla każdego oddzielnego projektu Compose. W jego `.env` ustaw unikalną nazwę
 `COMPOSE_PROJECT_NAME` oraz wolne porty `POSTGRES_PORT`, `RABBITMQ_PORT`
 i `RABBITMQ_MANAGEMENT_PORT`. Przykładowe porty drugiego środowiska to odpowiednio
-`55433`, `5673` i `15673`. Oba API i Vite używają stałych portów `8001`, `8002`
-i `5173`, więc przed uruchomieniem drugiego środowiska zatrzymaj poprzedni `dev.ps1`.
+`55433`, `5673` i `15673`. API i Vite używają stałych portów `8001`, `8002`,
+`8003` i `5173`, więc przed uruchomieniem drugiego środowiska zatrzymaj poprzedni `dev.ps1`.
 Przy pierwszym uruchomieniu możesz ustawić nazwę i porty w zmiennych
 środowiskowych PowerShella przed uruchomieniem obu skryptów w tym samym terminalu.
 
@@ -114,6 +116,7 @@ $env:UV_CACHE_DIR = Join-Path (Get-Location) '.cache/uv'
 uv run --project backend --locked ruff check backend
 uv run --project backend --locked --env-file .env --package cateringhub-orders python -m pytest --tb=no -c backend/services/orders/pyproject.toml backend/services/orders/tests
 uv run --project backend --locked --env-file .env --package cateringhub-inventory python -m pytest --tb=no -c backend/services/inventory/pyproject.toml backend/services/inventory/tests
+uv run --project backend --locked --env-file .env --package cateringhub-fulfillment python -m pytest --tb=no -c backend/services/fulfillment/pyproject.toml backend/services/fulfillment/tests
 npm.cmd --prefix frontend run check
 npm.cmd --prefix frontend run build
 ```
@@ -139,7 +142,8 @@ cateringhub/
 │   ├── packages/core/ # ustawienia bazy i uwierzytelnianie współdzielone przez API
 │   └── services/
 │       ├── orders/    # konta, menu, zamówienia
-│       └── inventory/ # składniki, przyjęcia, receptury i rezerwacje
+│       ├── inventory/ # składniki, przyjęcia, receptury i rezerwacje
+│       └── fulfillment/ # produkcja i dostawy
 ├── frontend/       # aplikacja kliencka i panel pracowników (React + TypeScript)
 ├── infra/          # skrypty inicjalizujące bazy danych
 ├── scripts/        # skrypty uruchamiające środowisko lokalne
@@ -154,8 +158,8 @@ cateringhub/
 
 | Etap | Termin | Zakres |
 |---|---|---|
-| Raport 1 | 01.12.2026 | Rozdziały 1–10: analiza, wymagania, architektura, pierwsza implementacja, testy |
-| Raport 2 | 15.12.2026 | Rozdziały 1–14: pełna implementacja, wdrożenie, dokumentacja użytkownika |
+| Raport 1 | 01.12.2026 | Rozdziały 1–10, implementacja i testy procesu od zamówienia do wyniku dostawy |
+| Raport 2 | 15.12.2026 | Rozdziały 1–14, pakiet Compose, pilotaż, poprawki i instrukcja użytkownika |
 | Raport 3 | 12.01.2027 | Rozdziały 1–17: utrzymanie, aktualizacje, planowanie i kontrola, wnioski |
 | Obrona | do 25.01.2027 | Prezentacja i obrona decyzji projektowych |
 
@@ -173,9 +177,8 @@ cateringhub/
 - [x] Receptury, rezerwacje i wymiana zdarzeń między Zasobami i Zamówieniami
 - [x] Podgląd stanów i rezerwacji w panelu Magazyn
 - [x] Formularze składników, przyjęć i receptur oraz ponawianie rezerwacji w panelu
-- [ ] Serwis Realizacji
-- [ ] Wartość sprzedaży i popularność dań w Zamówieniach
-- [ ] Wskaźniki dostaw w Realizacji i planowanie zapotrzebowania w Zasobach
+- [x] API, baza i proces zdarzeń Realizacji
+- [ ] Lista produkcyjna, rozliczenie zapasu, przydział i wynik dostawy
 - [ ] Wdrożenie
 
 [Spis rozdziałów raportu](docs/raport/README.md) ·

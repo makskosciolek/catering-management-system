@@ -6,6 +6,18 @@
 | Raport 2 | 15.12.2026 | 1–14 |
 | Raport 3 (końcowy) | 12.01.2027 | 1–17 |
 
+## Kolejność prac
+
+| Termin | Etapy | Wynik |
+|---|---|---|
+| Raport 1 | 22. Uruchomienie Realizacji. 23. Produkcja i magazyn. 24. Przydział i dostawa. 25. Widoki i nawigacja. 26. Test całości i raport. | Działający proces od zamówienia do wyniku dostawy. Rozdziały 8–10 opisują implementację, wykonane testy i poprawki. |
+| Raport 2 | 27. Pakiet wdrożeniowy. 28. Pilotaż. 29. Poprawki z pilotażu. 30. Wydanie i instrukcja. | Pilotaż w osobnym środowisku Compose, obsługa kopii danych, poprawki i instrukcja według ról. |
+| Raport 3 | 31. Aktualizacje i ich weryfikacja. 32. Rozliczenie projektu i wnioski. | Wyniki utrzymania, porównanie planu z wykonaniem oraz komplet rozdziałów 1–17. |
+| Obrona do 25.01.2027 | 33. Próba obrony. | Powtarzalna demonstracja i dostęp prowadzącego do repozytorium. |
+
+Wyliczanie zapotrzebowania, prognozy, szersze statystyki i przydział według
+stref należą do dalszego rozwoju produktu.
+
 ## Rozdziały raportu
 
 1. [Wstęp](rozdzial-01-wstep.md)

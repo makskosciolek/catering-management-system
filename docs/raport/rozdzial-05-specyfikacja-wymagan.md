@@ -11,18 +11,18 @@ systemu na elementy strukturalne architektury opisane w rozdziale 6.
 |---|---|---|---|---|
 | F-01 | Obsługa klienta | Rejestracja i logowanie, przeglądanie menu, koszyk, składanie zamówień, historia zamówień | Serwis zamówień (`orders`) | Zrealizowana (raport 1) |
 | F-02 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, dane kontaktowe, historia zamówień, alergeny i preferencje, reklamacje | Serwis zamówień (`orders`) | Częściowo: profil i historia |
-| F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia, receptury, rezerwacje i zapotrzebowanie | Zasoby (`inventory`) | Działają ewidencja składników, przyjęcia, receptury i rezerwacje. Planowanie zapotrzebowania przewidziano na raport 3. |
+| F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia, receptury, rezerwacje i zapotrzebowanie | Zasoby (`inventory`) | Działają ewidencja składników, przyjęcia, receptury i rezerwacje. Planowanie zapotrzebowania przewidziano w dalszym rozwoju. |
 | F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Zasoby (`inventory`) | Przyjęcia zawierają nazwę dostawcy. Katalog i zamówienia składników należą do wizji pełnego produktu. |
-| F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Planowana (raport 2) |
-| F-06 | Dostawy | Przydział kierowcom według stref, statusy i potwierdzenie doręczenia | Realizacja (`fulfillment`) | Planowana (raport 2) |
+| F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Planowana w raporcie 1 |
+| F-06 | Dostawy | Przydział kierowcom, statusy i potwierdzenie doręczenia | Realizacja (`fulfillment`) | Ręczny przydział i wynik dostawy zaplanowano w raporcie 1. Strefy przewidziano w dalszym rozwoju. |
 | F-07 | Zarządzanie personelem | Konta pracowników, role, grafik i wyznaczanie obsady | Zamówienia (`orders`) obsługują konta i role | Konta i role działają. Grafiki i planowanie obsady należą do wizji pełnego produktu. |
 | F-08 | Księgowość | Faktury, płatności, rozliczenia z klientami i dostawcami | Integracja z zewnętrznym systemem księgowym | Opis w architekturze |
-| F-09 | Analiza statystyk | Liczba zamówień i porcji, wartość sprzedaży, popularność dań oraz liczba i terminowość dostaw | Zamówienia (sprzedaż), Realizacja (dostawy) | Działa podsumowanie zamówień i porcji. Wartość sprzedaży, popularność dań oraz wskaźniki dostaw są planowane. |
-| F-10 | Prognozy | Prognoza zamówień i porcji oraz wyliczenie zapotrzebowania na składniki według receptur | Moduł planowania w Zasobach (`inventory`) | Planowana (raport 3) |
+| F-09 | Analiza statystyk | Liczba zamówień i porcji, wartość sprzedaży, popularność dań oraz liczba i terminowość dostaw | Zamówienia (sprzedaż), Realizacja (dostawy) | Działa podsumowanie zamówień i porcji. Dzienne wyniki dostaw zaplanowano w raporcie 1. Wartość sprzedaży i popularność dań przewidziano w dalszym rozwoju. |
+| F-10 | Prognozy | Prognoza zamówień i porcji oraz wyliczenie zapotrzebowania na składniki według receptur | Moduł planowania w Zasobach (`inventory`) | Dalszy rozwój |
 
-Do realizacji w oprogramowaniu wybrano trzy obszary: obsługę klienta i zamówień
-(F-01, F-02), planowanie zasobów i realizację zamówień (F-03, F-05, F-06) oraz
-statystyki i prognozy (F-09, F-10). Panel menedżera może połączyć na jednym
+Zakres zaliczeniowy obejmuje obsługę klienta i zamówień (F-01, część F-02),
+magazyn i rezerwacje (część F-03) oraz kuchnię i dostawy (F-05, część F-06).
+Podsumowania operacyjne wspierają te procesy w ramach F-09. Panel menedżera może połączyć na jednym
 ekranie zestawienia pobrane z API poszczególnych usług. Pozostałe funkcje
 opisano na poziomie architektury.
 

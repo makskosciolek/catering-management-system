@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: 'CateringHub: Realizacja'
+  version: 0.1.0
+paths:
+  /api/fulfillment/v1/health/:
+    get:
+      operationId: health_retrieve
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfillmentHealth'
+          description: ''
+  /api/fulfillment/v1/session/:
+    get:
+      operationId: session_retrieve
+      tags:
+      - session
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FulfillmentSession'
+          description: ''
+components:
+  schemas:
+    FulfillmentHealth:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+      required:
+      - service
+      - status
+    FulfillmentSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+      required:
+      - id
+      - role
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: cateringhub_access

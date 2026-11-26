@@ -20,7 +20,7 @@ def test_health_is_public_and_other_endpoints_require_a_token():
 
 @pytest.mark.django_db
 def test_warehouse_access_uses_current_identity_and_fails_closed(monkeypatch):
-    from cateringhub_inventory.stock import authentication
+    from cateringhub_core import session as authentication
     from rest_framework.exceptions import AuthenticationFailed
 
     user_id = uuid4()
@@ -28,7 +28,7 @@ def test_warehouse_access_uses_current_identity_and_fails_closed(monkeypatch):
     monkeypatch.setattr(
         authentication,
         "check_session",
-        lambda _: authentication.WarehouseIdentity(user_id, "manager"),
+        lambda _: authentication.SessionIdentity(user_id, "manager"),
     )
     assert client.get(f"{BASE}/ingredients/").status_code == 200
     assert client.post(f"{BASE}/ingredients/", {}, **headers).status_code == 403

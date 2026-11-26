@@ -8,7 +8,6 @@ import { setTimeout as delay } from 'node:timers/promises'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const project = 'cateringhub-e2e-' + randomUUID().slice(0, 8)
 const windows = process.platform === 'win32'
-const services = ['orders', 'inventory']
 const servers = []
 
 async function reservePort() {
@@ -18,10 +17,11 @@ async function reservePort() {
   return server
 }
 
-const listeners = await Promise.all(Array.from({ length: 6 }, reservePort))
-const [postgres, rabbitmq, management, orders, inventory, web] = listeners.map(
+const listeners = await Promise.all(Array.from({ length: 7 }, reservePort))
+const [postgres, rabbitmq, management, orders, inventory, fulfillment, web] = listeners.map(
   (server) => server.address().port,
 )
+const servicePorts = { orders, inventory, fulfillment }
 await Promise.all(listeners.map((server) => new Promise((resolve) => server.close(resolve))))
 const origin = (port) => 'http://127.0.0.1:' + port
 const secret = () => randomBytes(32).toString('hex')
@@ -51,6 +51,7 @@ const env = {
   ORDERS_API_URL: origin(orders),
   CATERINGHUB_ORDERS_ORIGIN: origin(orders),
   CATERINGHUB_INVENTORY_ORIGIN: origin(inventory),
+  CATERINGHUB_FULFILLMENT_ORIGIN: origin(fulfillment),
   CATERINGHUB_E2E_URL: origin(web),
 }
 
@@ -90,8 +91,9 @@ function startServer(command, args) {
 async function waitForServices() {
   const endpoints = [
     origin(web),
-    origin(orders) + '/api/orders/v1/health/',
-    origin(inventory) + '/api/inventory/v1/health/',
+    ...Object.entries(servicePorts).map(
+      ([service, port]) => origin(port) + '/api/' + service + '/v1/health/',
+    ),
   ]
   const deadline = Date.now() + 30_000
   while (Date.now() < deadline) {
@@ -143,9 +145,9 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 
 try {
   await compose('up', '-d', '--wait')
-  for (const service of services) {
+  for (const service of Object.keys(servicePorts)) {
     await run('uv', manageArgs(service, 'migrate', '--noinput'))
-    await run('uv', manageArgs(service, 'seed_demo'))
+    if (service !== 'fulfillment') await run('uv', manageArgs(service, 'seed_demo'))
     if (process.argv.includes('--backend')) {
       await run('uv', manageArgs(service, 'check'))
       await run('uv', manageArgs(service, 'makemigrations', '--check', '--dry-run'))
@@ -165,10 +167,7 @@ try {
   // Keep pending messages on disk while replacing the broker container.
   await run('uv', manageArgs('orders', 'publish_events', '--once'))
   await compose('up', '-d', '--wait', '--force-recreate', 'rabbitmq')
-  for (const [service, port] of [
-    ['orders', orders],
-    ['inventory', inventory],
-  ]) {
+  for (const [service, port] of Object.entries(servicePorts)) {
     const settings = service === 'orders' ? ['--settings=e2e_settings'] : []
     startServer(
       'uv',

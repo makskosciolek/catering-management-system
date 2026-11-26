@@ -32,6 +32,14 @@ każdym commicie na GitHubie.
 formularz przyjęcia przy 390, 1280 i 1920 px oraz w emulacji skali 125% przy
 1536 px. Formularz receptury obejrzano również w układzie mobilnym.
 
+26 listopada po uruchomieniu Realizacji przeszło 25 testów Zamówień,
+21 testów Zasobów, 4 testy Realizacji i 12 scenariuszy Playwright w przebiegu
+z Chrome. Środowisko miało osobny PostgreSQL i RabbitMQ. Testy Realizacji
+sprawdziły powtórną dostawę zdarzenia, anulowanie przed i po zdarzeniu
+gotowości oraz odrzucenie nieprawidłowych danych. Playwright potwierdził
+dostęp do sesji dla kuchni i kierowcy, odrzucenie magazyniera i wymaganie
+logowania. Walidacja OpenAPI Realizacji i budowa frontendu przeszły.
+
 Do sprawdzenia pozostają przebieg od rezerwacji do doręczenia, obciążenie,
 odtwarzanie bazy i skalowanie systemowe interfejsu.
 

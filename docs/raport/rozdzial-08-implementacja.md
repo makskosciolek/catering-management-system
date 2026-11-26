@@ -11,7 +11,12 @@ widzi listę zamówień z filtrem daty, wyszukiwaniem oraz liczbą zamówień i 
 Po zapisie osobny proces wysyła `order.submitted` do RabbitMQ. Zasoby odbierają
 wiadomość, liczą zapotrzebowanie według receptur i odsyłają wynik rezerwacji
 do Zamówień. Klient może anulować zamówienie przed godziną graniczną, a Zasoby
-zwalniają wtedy składniki. Obsługa kuchni i dostaw pozostaje w planie.
+zwalniają wtedy składniki.
+
+W etapie 22 uruchomiono serwis Realizacji z własną bazą PostgreSQL i procesem
+zdarzeń. Zamówienia tworzą konta demonstracyjne kuchni i kierowcy. Realizacja
+sprawdza aktualną rolę przez API Zamówień. Listę kuchni, przydział i ekran
+kierowcy przewidziano w etapach 23–25.
 
 Panel Magazyn pokazuje stan fizyczny, zarezerwowany i dostępny oraz progi
 minimum. Magazynier i administrator dodają składniki, rejestrują dostawy,
@@ -24,10 +29,11 @@ przyjęć, receptury i wyniki rezerwacji.
 |---|---|---|
 | Konta i uprawnienia | `backend/services/orders/src/cateringhub_orders/accounts/` | Model konta i ról, logowanie, profil, rejestracja, kontrola ciasteczka i CSRF |
 | Menu i zamówienia | `backend/services/orders/src/cateringhub_orders/sales/` | Modele `Meal`, `Order`, `OrderItem`, `OutboxEvent`, walidacja i transakcyjny zapis |
-| Proces zdarzeń | `cateringhub_core/messaging.py`, `cateringhub_core/worker.py` oraz polecenie `publish_events` w obu serwisach | Publikacja z potwierdzeniem brokera, odbiór i kontrolowane ponowienie |
+| Proces zdarzeń | `cateringhub_core/messaging.py`, `cateringhub_core/worker.py` oraz polecenie `publish_events` w każdym serwisie | Publikacja z potwierdzeniem brokera, odbiór i kontrolowane ponowienie |
 | Składniki i rezerwacje | `backend/services/inventory/src/cateringhub_inventory/stock/` | Przyjęcia dostaw, receptury, stan dostępny, rezerwacje i rozliczenie zapasu |
+| Realizacja | `backend/services/fulfillment/` | API, osobna baza, odbiór anulowań i zdarzeń gotowości, weryfikacja sesji |
 | Portal i panel pracowników | `frontend/src/` | Menu, koszyk, konto, zamówienia, stany i formularze magazynowe |
-| Kontrakty API | [Zamówienia](../api/orders.openapi.yaml), [Zasoby](../api/inventory.openapi.yaml) i `frontend/src/api/` | OpenAPI oraz typy i klienty obu usług |
+| Kontrakty API | [Zamówienia](../api/orders.openapi.yaml), [Zasoby](../api/inventory.openapi.yaml), [Realizacja](../api/fulfillment.openapi.yaml) i `frontend/src/api/` | OpenAPI oraz typy i klienty używane przez widoki |
 | Infrastruktura | `compose.yaml`, `infra/postgres/init.sh`, `scripts/` | Kontenery infrastruktury, inicjalizacja baz, instalacja i uruchamianie procesów |
 
 Podział odpowiada [warstwom serwisu](../diagramy/03-warstwy-serwisu.png)
@@ -55,6 +61,12 @@ Zasoby udostępniają `/api/inventory/v1/` z punktami `ingredients/`, `receipts/
 wspólnego klienta obsługującego sesję, CSRF i błędy. W razie utraty odpowiedzi
 na zapis przyjęcia przeglądarka ponawia żądanie z zapisanym UUID i danymi
 dostawy. Serwis zwraca istniejący wpis i zapas pozostaje naliczony jednokrotnie.
+
+Realizacja udostępnia `/api/fulfillment/v1/health/`, `session/`, `schema/`
+i `docs/`. Konsument kolejki `cateringhub.fulfillment.events` zapisuje
+zdarzenie i stan zamówienia w jednej transakcji. Identyfikator zdarzenia
+chroni przed podwójnym przetworzeniem, a zapis anulowania blokuje
+przywrócenie zamówienia przez opóźnione zdarzenie gotowości.
 
 Wiadomość `order.submitted` ma pola `event_id`, `event_type`, `version`,
 `occurred_at` i `order_id`. Dane dla odbiorcy (`payload`) zawierają datę

@@ -15,14 +15,17 @@ EXCHANGE = "cateringhub.events"
 DEAD_LETTER_EXCHANGE = "cateringhub.deadletter"
 INVENTORY_QUEUE = "cateringhub.inventory.events"
 ORDERS_STOCK_QUEUE = "cateringhub.orders.stock"
+FULFILLMENT_QUEUE = "cateringhub.fulfillment.events"
 ORDER_SUBMITTED = "order.submitted"
 ORDER_CANCELLED = "order.cancelled"
 ORDER_PREPARED = "order.prepared"
+ORDER_READY_FOR_FULFILLMENT = "order.ready_for_fulfillment"
 STOCK_RESERVED = "stock.reserved"
 STOCK_SHORTAGE = "stock.shortage"
 QUEUES = {
     INVENTORY_QUEUE: (ORDER_SUBMITTED, ORDER_CANCELLED, ORDER_PREPARED),
     ORDERS_STOCK_QUEUE: (STOCK_RESERVED, STOCK_SHORTAGE),
+    FULFILLMENT_QUEUE: (ORDER_READY_FOR_FULFILLMENT, ORDER_CANCELLED),
 }
 
 

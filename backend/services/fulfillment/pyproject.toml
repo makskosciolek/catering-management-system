@@ -1,0 +1,21 @@
+[project]
+name = "cateringhub-fulfillment"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "cateringhub-core",
+  "drf-spectacular[sidecar]>=0.28,<1",
+  "psycopg[binary]>=3.2,<4",
+]
+
+[tool.uv.sources]
+cateringhub-core = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "cateringhub_fulfillment.settings"
+testpaths = ["tests"]
+addopts = "-q"

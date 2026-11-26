@@ -21,13 +21,13 @@ kateringowe, które nie posiadają własnego działu IT ani infrastruktury serwe
 3. Zaprojektowanie architektury systemu na trzech poziomach (biznesowym,
    aplikacyjnym i technologicznym) wraz z porównaniem alternatywnych rozwiązań.
 4. Implementacja prototypu, który obsługuje zamówienia, magazyn i realizację
-   zamówienia od kuchni do dostawy. Zamówienia podają statystyki sprzedaży,
-   a Realizacja odpowiada za wskaźniki dostaw.
-5. Opracowanie modułu planowania w Zasobach. Moduł wykorzysta zamówienia,
-   prognozę popytu i receptury do wyliczenia zapotrzebowania na składniki.
-   Ustalanie grafików i wyliczanie obsady pozostają w wizji pełnego produktu.
-6. Przetestowanie systemu, udokumentowanie wykrytych błędów i wprowadzonych poprawek
+   zamówienia od kuchni do dostawy. Prototyp obejmuje liczniki zamówień i porcji
+   oraz dzienne podsumowanie wyników dostaw.
+5. Przetestowanie systemu, udokumentowanie wykrytych błędów i wprowadzonych poprawek
    oraz przygotowanie systemu do wdrożenia w kontenerach.
+
+Planowanie zapotrzebowania, prognozy popytu, pełniejsze statystyki sprzedaży
+i planowanie obsady należą do dalszego rozwoju produktu.
 
 ## 2.2 Oczekiwane rezultaty
 

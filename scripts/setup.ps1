@@ -10,8 +10,9 @@ try {
     $env:UV_CACHE_DIR = Join-Path $taskRoot '.cache/uv'
     uv sync --project backend --all-packages --locked
     if ($LASTEXITCODE -ne 0) { throw 'Instalacja zależności Pythona nie powiodła się.' }
-    foreach ($taskService in @('orders', 'inventory')) {
-        foreach ($taskCommand in @('migrate', 'seed_demo')) {
+    foreach ($taskService in @('orders', 'inventory', 'fulfillment')) {
+        $taskCommands = if ($taskService -eq 'fulfillment') { @('migrate') } else { @('migrate', 'seed_demo') }
+        foreach ($taskCommand in $taskCommands) {
             uv run --project backend --locked --no-sync --env-file .env --package "cateringhub-$taskService" python "backend/services/$taskService/manage.py" $taskCommand
             if ($LASTEXITCODE -ne 0) { throw "Polecenie $taskCommand nie powiodło się ($taskService)." }
         }

@@ -22,7 +22,7 @@ function Start-DevProcess($taskName, $taskExecutable, $taskArguments) {
     Start-Process @taskOptions
 }
 try {
-    $taskServicePorts = [ordered]@{ orders = 8001; inventory = 8002 }
+    $taskServicePorts = [ordered]@{ orders = 8001; inventory = 8002; fulfillment = 8003 }
     foreach ($taskService in $taskServicePorts.Keys) {
         $taskAddress = "127.0.0.1:$($taskServicePorts[$taskService])"
         $taskDjangoArgs = @('run', '--project', 'backend', '--locked', '--no-sync', '--env-file', '.env',
