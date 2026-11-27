@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from cateringhub_core.messaging import (
     ORDER_CANCELLED,
+    ORDER_PREPARATION_STARTED,
     ORDER_READY_FOR_FULFILLMENT,
     Event,
     InvalidEvent,
@@ -57,3 +58,14 @@ def test_invalid_payload_is_rejected_without_recording_it():
         apply_fulfillment_event(event)
     assert not FulfillmentOrder.objects.exists()
     assert not ProcessedEvent.objects.exists()
+
+
+@pytest.mark.django_db
+def test_early_preparation_message_creates_the_same_snapshot_without_a_later_reset():
+    ready = ready_event(uuid4())
+    started = Event(uuid4(), ORDER_PREPARATION_STARTED, ready.order_id, ready.payload)
+    apply_fulfillment_event(started)
+    apply_fulfillment_event(ready)
+    order = FulfillmentOrder.objects.get(pk=ready.order_id)
+    assert order.status == FulfillmentOrder.Status.PREPARING
+    assert order.items == ready.payload["items"]

@@ -6,6 +6,9 @@ from django.db import models
 class FulfillmentOrder(models.Model):
     class Status(models.TextChoices):
         READY = "ready", "Do przygotowania"
+        PREPARING = "preparing", "W przygotowaniu"
+        PREPARED = "prepared", "Przygotowane"
+        PACKED = "packed", "Spakowane"
         CANCELLED = "cancelled", "Anulowane"
 
     order_id = models.UUIDField(primary_key=True, editable=False)

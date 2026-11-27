@@ -13,7 +13,7 @@ systemu na elementy strukturalne architektury opisane w rozdziale 6.
 | F-02 | Zarządzanie relacjami z klientami (CRM) | Profil klienta, dane kontaktowe, historia zamówień, alergeny i preferencje, reklamacje | Serwis zamówień (`orders`) | Częściowo: profil i historia |
 | F-03 | Planowanie zasobów | Stany magazynowe, przyjęcia, receptury, rezerwacje i zapotrzebowanie | Zasoby (`inventory`) | Działają ewidencja składników, przyjęcia, receptury i rezerwacje. Planowanie zapotrzebowania przewidziano w dalszym rozwoju. |
 | F-04 | Zarządzanie relacjami z dostawcami | Katalog dostawców, zamówienia składników, kontrola dostaw surowców | Zasoby (`inventory`) | Przyjęcia zawierają nazwę dostawcy. Katalog i zamówienia składników należą do wizji pełnego produktu. |
-| F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Planowana w raporcie 1 |
+| F-05 | Planowanie operacyjne | Lista produkcyjna dla kuchni na wybrany dzień, statusy przygotowania posiłków | Serwis realizacji (`fulfillment`) | Działa API. Widok kuchni zaplanowano w etapie 25 Raportu 1. |
 | F-06 | Dostawy | Przydział kierowcom, statusy i potwierdzenie doręczenia | Realizacja (`fulfillment`) | Ręczny przydział i wynik dostawy zaplanowano w raporcie 1. Strefy przewidziano w dalszym rozwoju. |
 | F-07 | Zarządzanie personelem | Konta pracowników, role, grafik i wyznaczanie obsady | Zamówienia (`orders`) obsługują konta i role | Konta i role działają. Grafiki i planowanie obsady należą do wizji pełnego produktu. |
 | F-08 | Księgowość | Faktury, płatności, rozliczenia z klientami i dostawcami | Integracja z zewnętrznym systemem księgowym | Opis w architekturze |
@@ -60,8 +60,9 @@ Macierz uprawnień (T – pełny dostęp, W – tylko własne dane, O – tylko 
 | Plan zapotrzebowania na składniki | – | – | – | – | O | O |
 | Konta i role użytkowników | – | – | – | – | O | T |
 
-W prototypie z raportu 1 działają menu, zamówienia, podsumowania, profile
-oraz panel Magazyn. Uprawnienia do kuchni, dostaw i prognoz opisują stan docelowy.
+W prototypie działają menu, zamówienia, podsumowania, profile oraz panel Magazyn.
+API listy produkcyjnej sprawdza role według tabeli. Uprawnienia do dostaw
+i prognoz opisują stan docelowy.
 
 ## 5.3 Interesariusze
 
@@ -109,7 +110,7 @@ Status **Z** oznacza funkcję działającą w prototypie, a **P** funkcję plano
 | FR-12 | Panel zamówień | Menedżer i administrator widzą wszystkie zamówienia, filtrują je po dacie dostawy i wyszukują po danych klienta lub adresie. | Z |
 | FR-13 | Podsumowanie dnia | System podaje liczbę zamówień i łączną liczbę porcji dla wybranej daty dostawy. | Z |
 | FR-14 | Zdarzenie o zamówieniu | Zamówienia publikują w RabbitMQ `order.submitted`. Zdarzenie zawiera identyfikatory dań, liczbę porcji i datę dostawy potrzebne Zasobom. | Z (publikacja i odbiór) |
-| FR-15 | Anulowanie i zmiana zamówienia | Klient może anulować lub zmienić zamówienie do ustalonej godziny dnia poprzedzającego dostawę. | Z (anulowanie), P (zmiana) |
+| FR-15 | Anulowanie i zmiana zamówienia | Klient może anulować zamówienie do ustalonej godziny dnia poprzedzającego dostawę, jeśli produkcja jeszcze się nie rozpoczęła. | Z (anulowanie), P (zmiana zamówienia) |
 
 ### 5.4.4 Magazyn i planowanie zasobów
 
@@ -127,11 +128,11 @@ przeglądają wykaz sprzętu i akcesoriów używanych w kuchni oraz przy dostawa
 
 | ID | Nazwa | Opis | Status |
 |---|---|---|---|
-| FR-20 | Lista produkcyjna | Kuchnia widzi, ile porcji każdego dania przygotować na wybrany dzień. | P |
-| FR-21 | Statusy przygotowania | Pracownik kuchni oznacza zamówienie jako przygotowane i spakowane. | P |
+| FR-20 | Lista produkcyjna | Dla wybranej daty dostawy kuchnia widzi sumę porcji każdego dania i listę zamówień z rezerwacją. | Z (API), P (widok kuchni) |
+| FR-21 | Statusy przygotowania | Pracownik kuchni rozpoczyna produkcję, a następnie oznacza zamówienie jako przygotowane i spakowane. | Z (API), P (widok kuchni) |
 | FR-22 | Przydział dostaw | Menedżer przydziela zamówienia kierowcom według stref dostaw. | P |
 | FR-23 | Realizacja dostawy | Kierowca widzi przydzielone dostawy i oznacza je jako doręczone lub nieudane. Realizacja zestawia te wyniki dla menedżera i porównuje datę doręczenia z datą planowaną. | P |
-| FR-24 | Status dla klienta | Klient widzi aktualny status zamówienia na każdym etapie realizacji. | P |
+| FR-24 | Status dla klienta | Klient widzi aktualny status zamówienia na każdym etapie realizacji. | Z do spakowania, P dla dostawy |
 
 ### 5.4.6 Statystyki, prognozy i raportowanie
 

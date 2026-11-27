@@ -188,7 +188,8 @@ stany i rezerwacje przez API Zasobów. Magazynier i administrator dodają
 składniki, przyjmują dostawy, zapisują receptury i ponawiają rezerwacje.
 Wynik rezerwacji wraca do Zamówień przez RabbitMQ.
 Realizacja sprawdza aktualne role w Zamówieniach i odbiera zdarzenia przez
-RabbitMQ. Obsługa produkcji i dostaw należy do kolejnych etapów Raportu 1.
+RabbitMQ. API udostępnia listę produkcji i obsługuje postęp kuchni.
+Przydział dostaw i widoki pracowników należą do kolejnych etapów Raportu 1.
 Prognozy, planowanie zapotrzebowania i pełniejsze statystyki sprzedaży należą
 do dalszego rozwoju.
 
@@ -215,7 +216,7 @@ dekompozycję na moduły, wzorzec warstwowy wewnątrz serwisu oraz model danych.
 | `orders.accounts` | Użytkownicy, role, rejestracja, logowanie, profil | – |
 | `orders.sales` | Menu, zamówienia, statystyki sprzedaży i skrzynka nadawcza zdarzeń | `orders.accounts` |
 | `inventory.stock` | Przyjęcia składników, receptury i rezerwacje. Moduł planowania zapotrzebowania jest przewidziany w Zasobach. | Zdarzenia o zamówieniach, własna baza, API Zamówień sprawdzające aktualne role |
-| `fulfillment.operations` | Sesja, dane zamówień dla kuchni, docelowo produkcja i dostawy | Baza `fulfillment`, zdarzenia i API Zamówień sprawdzające aktualne role |
+| `fulfillment.operations` | Sesja, lista produkcji i postęp kuchni, docelowo także dostawy | Baza `fulfillment`, zdarzenia i wewnętrzne API Zamówień |
 
 Każdy mikroserwis ma własną bazę i korzysta z danych, które zapisuje sam albo
 otrzymuje przez ustalone kontrakty. Zasoby zapisują dane ze zdarzeń
@@ -389,7 +390,7 @@ zdarzenia, a strzałki do kolejek dead letter oznaczają odrzucone wiadomości.
 | Aplikacja webowa | Klient interfejsu REST, działa w przeglądarce |
 | Zamówienia (API) | Zapisuje zamówienia i dane w skrzynce nadawczej. Udostępnia statystyki sprzedaży. |
 | Zasoby (API) | Obsługuje składniki, przyjęcia, receptury i rezerwacje. Plan zapotrzebowania jest przewidziany w dalszej pracy. |
-| Realizacja (API) | Udostępnia kontrolę stanu i sesji. Lista produkcyjna, dostawy i ich wyniki są planowane. |
+| Realizacja (API) | Udostępnia dzienną listę produkcji oraz operacje rozpoczęcia, przygotowania i spakowania. |
 | Procesy zdarzeń | Publikują wpisy ze skrzynki nadawczej i obsługują zdarzenia z kolejek przypisanych usługom. |
 | Broker komunikatów | Rozdziela zdarzenia do kolejek subskrybentów |
 | Bazy danych | Trwałe przechowywanie danych każdego serwisu |
@@ -397,7 +398,7 @@ zdarzenia, a strzałki do kolejek dead letter oznaczają odrzucone wiadomości.
 | Łącznik | Między | Styl | Charakter |
 |---|---|---|---|
 | HTTP/REST, JSON | Aplikacja webowa i serwis | klient-serwer | synchroniczny |
-| HTTP/REST, JSON | Zasoby lub Realizacja i Zamówienia | sprawdzenie aktywności konta i jego aktualnej roli | synchroniczny |
+| HTTP/REST, JSON | Zasoby lub Realizacja i Zamówienia | weryfikacja sesji oraz zatwierdzenie rozpoczęcia produkcji przez Zamówienia | synchroniczny |
 | SQL | Serwis i jego baza | dostęp do danych | synchroniczny |
 | AMQP, wymiana typu `topic` | Publikator, broker, subskrybenci | publikuj-subskrybuj | asynchroniczny |
 
@@ -416,15 +417,14 @@ flowchart LR
     spa -- "REST" --> orders
     spa -- "REST" --> inv
     spa -- "REST" --> ful
-    ful -- "Weryfikacja sesji" --> orders
-    orders -- "order.submitted, order.cancelled" --> ex
-    ex -- "zamówienia" --> q1 --> inv
+    ful -- "Sesja, rozpoczęcie produkcji" --> orders
+    orders -- "zamówienie, anulowanie, gotowość, rozpoczęcie" --> ex
+    ex -- "zamówienie, anulowanie, przygotowanie" --> q1 --> inv
     inv -- "wynik rezerwacji" --> ex
-    ex -- "wynik rezerwacji" --> q2 --> orders
-    ex -- "order.cancelled" --> q3 --> ful
-    orders -. "order.ready_for_fulfillment" .-> ex
-    ex -. "order.ready_for_fulfillment" .-> q3
-    ful -. "zdarzenia kuchni i dostaw" .-> ex
+    ex -- "wynik rezerwacji, postęp kuchni" --> q2 --> orders
+    ex -- "gotowość, rozpoczęcie, anulowanie" --> q3 --> ful
+    ful -- "przygotowanie, spakowanie" --> ex
+    ful -. "zdarzenia dostaw" .-> ex
     q1 -. "odrzucone wiadomości" .-> dlq
     q2 -.-> dlq
     q3 -.-> dlq
@@ -482,8 +482,10 @@ zdarzenie ma unikalny identyfikator, po którym odbiorca rozpoznaje duplikaty.
 | `stock.reserved` | Zasoby | Zamówienia | Działa publikacja i odbiór |
 | `stock.shortage` | Zasoby | Zamówienia | Działa publikacja i odbiór |
 | `order.cancelled` | Zamówienia | Zasoby, Realizacja | Zasoby zwalniają składniki. Realizacja zapisuje anulowanie, także przed zdarzeniem gotowości. |
-| `order.ready_for_fulfillment` | Zamówienia | Realizacja | Odbiorca zapisuje datę dostawy, identyfikatory i nazwy dań oraz porcje. Publikacja po rezerwacji jest planowana w etapie 23. |
-| `order.prepared` | Realizacja | Zamówienia, Zasoby | Zasoby potrafią rozliczyć zużycie. Nadawca i odbiór w Zamówieniach są planowane. |
+| `order.ready_for_fulfillment` | Zamówienia | Realizacja | Po rezerwacji przenosi datę dostawy, identyfikatory i nazwy dań oraz porcje zapisane w zamówieniu. |
+| `order.preparation_started` | Zamówienia | Realizacja | Zapisany razem ze stanem rozpoczęcia. Przenosi ten sam zestaw danych, więc może dotrzeć przed gotowością. |
+| `order.prepared` | Realizacja | Zamówienia, Zasoby | Zmienia status klienta i rozlicza fizyczne zużycie składników. |
+| `order.packed` | Realizacja | Zamówienia | Zmienia status klienta. Późniejszy odbiór `order.prepared` go nie cofa. |
 | `delivery.assigned` | Realizacja | Zamówienia | Planowane |
 | `delivery.completed` | Realizacja | Zamówienia | Planowane |
 

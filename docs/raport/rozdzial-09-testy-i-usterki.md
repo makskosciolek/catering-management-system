@@ -40,7 +40,15 @@ gotowości oraz odrzucenie nieprawidłowych danych. Playwright potwierdził
 dostęp do sesji dla kuchni i kierowcy, odrzucenie magazyniera i wymaganie
 logowania. Walidacja OpenAPI Realizacji i budowa frontendu przeszły.
 
-Do sprawdzenia pozostają przebieg od rezerwacji do doręczenia, obciążenie,
+Po etapie 23 przeszło 30 testów Zamówień, 21 testów Zasobów, 8 testów
+Realizacji i 13 scenariuszy Playwright z Chrome na osobnym PostgreSQL
+i RabbitMQ. Sprawdzono migrację istniejących rezerwacji, filtrowanie listy
+i sumy porcji ponad jedną stronę oraz konflikt równoczesnego anulowania
+i rozpoczęcia produkcji. W scenariuszu integracyjnym klient zobaczył
+stany do spakowania, a dwukrotne żądanie przygotowania pomniejszyło
+zapas fizyczny o ilość z rezerwacji tylko raz.
+
+Do sprawdzenia pozostają przydział i wynik dostawy, obciążenie,
 odtwarzanie bazy i skalowanie systemowe interfejsu.
 
 ## 9.2 Rejestr usterek

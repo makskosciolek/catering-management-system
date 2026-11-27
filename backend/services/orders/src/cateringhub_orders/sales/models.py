@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
+from .rules import earliest_delivery_date
+
 
 class Meal(models.Model):
     class Category(models.TextChoices):
@@ -38,7 +40,14 @@ class Order(models.Model):
         SUBMITTED = "submitted", "Oczekuje na magazyn"
         STOCK_RESERVED = "stock_reserved", "Składniki zarezerwowane"
         STOCK_SHORTAGE = "stock_shortage", "Brak składników lub receptury"
+        PREPARING = "preparing", "W przygotowaniu"
+        PREPARED = "prepared", "Przygotowane"
+        PACKED = "packed", "Spakowane"
         CANCELLED = "cancelled", "Anulowane"
+
+    CANCELLABLE_STATUSES = frozenset(
+        {Status.SUBMITTED, Status.STOCK_RESERVED, Status.STOCK_SHORTAGE}
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -57,6 +66,13 @@ class Order(models.Model):
             models.Index(fields=("customer", "-created_at")),
             models.Index(fields=("delivery_date",)),
         ]
+
+    @property
+    def can_cancel(self):
+        return (
+            self.status in self.CANCELLABLE_STATUSES
+            and self.delivery_date >= earliest_delivery_date()
+        )
 
 
 class OrderItem(models.Model):

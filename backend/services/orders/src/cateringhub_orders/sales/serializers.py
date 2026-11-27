@@ -25,6 +25,9 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     customer_name = serializers.CharField(source="customer.get_full_name", read_only=True)
     customer_email = serializers.EmailField(source="customer.email", read_only=True)
+    can_cancel = serializers.BooleanField(
+        read_only=True, help_text="Czy właściciel może teraz anulować zamówienie."
+    )
 
     class Meta:
         model = Order
@@ -37,6 +40,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "contact_phone",
             "note",
             "status",
+            "can_cancel",
             "total",
             "created_at",
             "items",

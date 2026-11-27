@@ -19,7 +19,7 @@ różne firmy kateringowe bez utrzymywania własnej infrastruktury IT.
 |---|---|---|
 | Zamówienia (`orders`) | Konta, menu, koszyk, zamówienia, historia klienta i statystyki sprzedaży | Działają obsługa zamówień, publikacja zdarzeń oraz liczniki zamówień i porcji. Wartość sprzedaży i popularność dań są planowane. |
 | Zasoby (`inventory`) | Przyjęcia składników, receptury, rezerwacje i planowanie zapotrzebowania | Panel obsługuje składniki, przyjęcia, receptury i ponowienia rezerwacji. Serwis rezerwuje składniki na podstawie zdarzeń zamówień. |
-| Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | Działają API, baza, kolejka i weryfikacja sesji. Lista produkcyjna i obsługa dostaw są kolejnymi etapami Raportu 1. |
+| Realizacja (`fulfillment`) | Lista produkcyjna kuchni, przydział i obsługa dostaw oraz wskaźniki ich wykonania | API udostępnia plan produkcji dla wybranego dnia i obsługuje stany od rozpoczęcia do spakowania. Przydział dostaw i widok kuchni są kolejnymi etapami Raportu 1. |
 
 ### Role użytkowników
 
@@ -79,9 +79,10 @@ z brakiem. Szczegóły przebiegu opisano w [instrukcji Zasobów](docs/inventory.
 Złóż zamówienie jako klient, a następnie odszukaj je w panelu menedżera po
 adresie e-mail. Nowe zamówienie czeka na wynik z Zasobów. Szczegóły zamówienia
 pokazują po chwili „Składniki zarezerwowane” albo „Brak składników lub receptury”.
-Do godziny granicznej klient może anulować zamówienie w jego szczegółach.
-Zasoby zwalniają wtedy zarezerwowane składniki. Jeśli odpowiedź po złożeniu
-zamówienia zaginie, koszyk pozwala sprawdzić zapis przed kolejną próbą.
+Klient może anulować zamówienie do godziny granicznej, dopóki kuchnia nie
+rozpoczęła produkcji. Zasoby zwalniają wtedy zarezerwowane składniki.
+Jeśli odpowiedź po złożeniu zamówienia zaginie, koszyk pozwala sprawdzić
+zapis przed kolejną próbą.
 
 [Opis API Zamówień](http://localhost:5173/api/orders/v1/docs/),
 [opis API Zasobów](http://localhost:5173/api/inventory/v1/docs/),
@@ -92,9 +93,17 @@ aplikacji. Polecenie `seed_demo` tworzy też lokalne konta
 pozostałe konta demonstracyjne. Punkt `/api/fulfillment/v1/session/` zwraca
 aktualną rolę zalogowanego pracownika uprawnionego do Realizacji.
 
+W API Realizacji wybierz datę dostawy przez `production/?delivery_date=RRRR-MM-DD`.
+`production/summary/` z tym samym parametrem zlicza porcje z całego dnia.
+Kuchnia używa operacji `start/`, `prepare/` i `pack/` dla wybranego zamówienia.
+Żądania zapisu wymagają nagłówka `X-CSRFToken` z `/api/orders/v1/auth/csrf/`.
+Po przygotowaniu Zasoby rozliczają składniki, a klient widzi postęp w zamówieniu.
+
 Ctrl+C zatrzymuje procesy aplikacji. Logi znajdziesz w `.artifacts/dev/`.
 Jeśli chcesz zatrzymać też PostgreSQL i RabbitMQ, użyj `docker compose stop`.
-Przy aktualizacji istniejącego środowiska uruchom ponownie `scripts/setup.ps1`.
+Przy aktualizacji istniejącego środowiska zatrzymaj procesy z `scripts/dev.ps1`
+i uruchom ponownie `scripts/setup.ps1`. Migracja przekazuje do Realizacji także
+wcześniej zarezerwowane zamówienia z aktualną lub przyszłą datą dostawy.
 Postępowanie ze starszym wolumenem brokera i ponawianie publikacji opisano w
 [instrukcji Zasobów](docs/inventory.md#4-odzyskiwanie-zdarzeń).
 
@@ -178,7 +187,8 @@ cateringhub/
 - [x] Podgląd stanów i rezerwacji w panelu Magazyn
 - [x] Formularze składników, przyjęć i receptur oraz ponawianie rezerwacji w panelu
 - [x] API, baza i proces zdarzeń Realizacji
-- [ ] Lista produkcyjna, rozliczenie zapasu, przydział i wynik dostawy
+- [x] API listy produkcyjnej, postęp kuchni i rozliczenie zapasu po przygotowaniu
+- [ ] Widok kuchni, przydział i wynik dostawy
 - [ ] Wdrożenie
 
 [Spis rozdziałów raportu](docs/raport/README.md) ·

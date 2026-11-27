@@ -115,7 +115,9 @@ def cancel_order(*, order_id, customer):
         raise NotFound()
     if order.status == Order.Status.CANCELLED:
         return order
-    if order.delivery_date < earliest_delivery_date():
+    if not order.can_cancel:
+        if order.status not in Order.CANCELLABLE_STATUSES:
+            raise OrderConflict("Produkcja ruszyła. Zamówienia nie można już anulować.")
         raise ValidationError({"delivery_date": "Minął termin anulowania tego zamówienia."})
     order.status = Order.Status.CANCELLED
     order.save(update_fields=["status"])

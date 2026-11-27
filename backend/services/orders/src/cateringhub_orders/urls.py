@@ -11,12 +11,13 @@ from .accounts.views import (
     RegisterView,
     SessionIdentityView,
 )
-from .sales.views import MealViewSet, OrderViewSet, health
+from .sales.views import MealViewSet, OrderViewSet, health, start_fulfillment
 
 router = DefaultRouter()
 router.register("menu", MealViewSet)
 router.register("orders", OrderViewSet, basename="order")
 urlpatterns = [
+    path("internal/fulfillment/orders/<uuid:order_id>/start/", start_fulfillment),
     path("api/orders/admin/", admin.site.urls),
     path("api/orders/v1/health/", health),
     path("api/orders/v1/auth/csrf/", CsrfView.as_view()),

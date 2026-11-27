@@ -17,6 +17,161 @@ paths:
               schema:
                 $ref: '#/components/schemas/FulfillmentHealth'
           description: ''
+  /api/fulfillment/v1/production/:
+    get:
+      operationId: production_list
+      parameters:
+      - in: query
+        name: delivery_date
+        schema:
+          type: string
+          format: date
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - production
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductionOrderList'
+          description: ''
+  /api/fulfillment/v1/production/{order_id}/pack/:
+    post:
+      operationId: production_pack_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - production
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionOrder'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionError'
+          description: Operacja nie pasuje do postępu zamówienia.
+  /api/fulfillment/v1/production/{order_id}/prepare/:
+    post:
+      operationId: production_prepare_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - production
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionOrder'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionError'
+          description: Operacja nie pasuje do postępu zamówienia.
+  /api/fulfillment/v1/production/{order_id}/start/:
+    post:
+      operationId: production_start_create
+      parameters:
+      - in: header
+        name: X-CSRFToken
+        schema:
+          type: string
+        description: Token z odpowiedzi GET /api/orders/v1/auth/csrf/.
+        required: true
+      - in: path
+        name: order_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - production
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionStartAccepted'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionError'
+          description: Operacja nie pasuje do postępu zamówienia.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionError'
+          description: Brak odpowiedzi z Zamówień. Ponów operację.
+  /api/fulfillment/v1/production/summary/:
+    get:
+      operationId: production_summary_list
+      parameters:
+      - in: query
+        name: delivery_date
+        schema:
+          type: string
+          format: date
+        required: true
+      tags:
+      - production
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductionPortion'
+          description: ''
   /api/fulfillment/v1/session/:
     get:
       operationId: session_retrieve
@@ -54,6 +209,119 @@ components:
       required:
       - id
       - role
+    PaginatedProductionOrderList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionOrder'
+    ProductionError:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    ProductionItem:
+      type: object
+      properties:
+        meal_id:
+          type: string
+          format: uuid
+        meal_name:
+          type: string
+          maxLength: 150
+        quantity:
+          type: integer
+          maximum: 1000
+          minimum: 1
+      required:
+      - meal_id
+      - meal_name
+      - quantity
+    ProductionOrder:
+      type: object
+      properties:
+        order_id:
+          type: string
+          format: uuid
+          readOnly: true
+        delivery_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ProductionOrderStatusEnum'
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionItem'
+          readOnly: true
+      required:
+      - delivery_date
+      - items
+      - order_id
+      - status
+    ProductionOrderStatusEnum:
+      enum:
+      - ready
+      - preparing
+      - prepared
+      - packed
+      - cancelled
+      type: string
+      description: |-
+        * `ready` - Do przygotowania
+        * `preparing` - W przygotowaniu
+        * `prepared` - Przygotowane
+        * `packed` - Spakowane
+        * `cancelled` - Anulowane
+    ProductionPortion:
+      type: object
+      properties:
+        meal_id:
+          type: string
+          format: uuid
+        meal_name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+      required:
+      - meal_id
+      - meal_name
+      - quantity
+    ProductionStartAccepted:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/ProductionStartAcceptedStatusEnum'
+      required:
+      - status
+    ProductionStartAcceptedStatusEnum:
+      enum:
+      - accepted
+      type: string
+      description: '* `accepted` - accepted'
   securitySchemes:
     cookieAuth:
       type: apiKey

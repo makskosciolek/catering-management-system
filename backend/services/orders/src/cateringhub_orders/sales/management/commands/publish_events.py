@@ -1,14 +1,14 @@
-from cateringhub_core.messaging import ORDERS_STOCK_QUEUE
+from cateringhub_core.messaging import ORDERS_QUEUE
 from cateringhub_core.worker import EventWorkerCommand
 
-from ...events import apply_stock_result
+from ...events import apply_order_event
 from ...models import OutboxEvent
 
 
 class Command(EventWorkerCommand):
-    help = "Publikuje zdarzenia zamówień i opcjonalnie odbiera wyniki rezerwacji."
+    help = "Publikuje zdarzenia zamówień i odbiera wyniki rezerwacji oraz produkcji."
     outbox_model = OutboxEvent
-    queue = ORDERS_STOCK_QUEUE
+    queue = ORDERS_QUEUE
 
     def apply_event(self, event):
-        apply_stock_result(event)
+        apply_order_event(event)

@@ -93,6 +93,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = jwt_settings()
 SPECTACULAR_SETTINGS = {
     "TITLE": "CateringHub: zamówienia",
+    "SCHEMA_PATH_PREFIX": r"/api/orders/v1",
     "DESCRIPTION": "API pilotażu SmakBox. Konta, menu i zamówienia na dania i porcje.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,

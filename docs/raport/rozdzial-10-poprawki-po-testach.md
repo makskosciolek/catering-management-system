@@ -19,6 +19,10 @@ W tabeli powiązano usterki z konkretną zmianą i sposobem sprawdzenia.
 | U-13 | [Ustawienia testów](../../backend/services/orders/e2e_settings.py) i [uruchamianie testów](../../scripts/test-e2e.mjs) | Serwer Zamówień uruchamiany dla Playwrighta używa osobnego limitu 60 logowań na minutę. Zwykłe uruchomienie aplikacji korzysta z limitu 10 logowań na minutę. | Ponowne uruchomienie całego zestawu przeszło, w tym oba scenariusze zatrzymane wcześniej na logowaniu. |
 | U-14 | [Formularze magazynu](../../frontend/src/warehouse-forms.tsx) i [style magazynu](../../frontend/src/warehouse.module.css) | W układzie mobilnym wybór składnika ma cały wiersz, a pole ilości jest poniżej. | Oględziny formularza w Chrome przy 390 px i kontrola, że strona mieści się bez przewijania w poziomie. |
 
-Po podłączeniu Realizacji trzeba sprawdzić pełny przebieg od rezerwacji do
-doręczenia. Jedna z prób powinna dwukrotnie dostarczyć zdarzenie `order.prepared`
-i potwierdzić pojedyncze odjęcie składników z zapasu.
+W etapie 23 klient korzysta z pola `can_cancel` zwracanego przez Zamówienia.
+Szczegóły przestały osobno odpytywać o godzinę graniczną. Test równoczesnego
+anulowania i rozpoczęcia produkcji potwierdził, że tylko jedna operacja
+zmienia stan i zapisuje zdarzenie. Test Zasobów ponowił odbiór
+`order.prepared`, a Playwright wysłał dwukrotnie żądanie przygotowania.
+W obu próbach składniki odjęto raz. Pełny przebieg do doręczenia zostanie
+sprawdzony po dodaniu przydziału i wyniku dostawy.

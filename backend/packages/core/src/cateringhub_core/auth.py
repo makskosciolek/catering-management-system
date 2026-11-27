@@ -8,6 +8,8 @@ from rest_framework_simplejwt.authentication import (
 
 from .config import JWT_COOKIE_NAME
 
+PRODUCTION_WRITE_ROLES = frozenset({"kitchen", "manager", "admin"})
+
 
 def enforce_csrf(request):
     SessionAuthentication().enforce_csrf(request)

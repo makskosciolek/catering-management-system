@@ -1,3 +1,4 @@
+from cateringhub_core.auth import PRODUCTION_WRITE_ROLES
 from django.conf import settings
 from django.db import connection
 from django.db.models import Count, Sum
@@ -14,8 +15,10 @@ from rest_framework.decorators import action, api_view, authentication_classes, 
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .models import Meal, Order
+from .production import start_production
 from .rules import earliest_delivery_date
 from .serializers import CreateOrderSerializer, MealSerializer, OrderSerializer
 from .services import cancel_order
@@ -34,6 +37,17 @@ def health(request):
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
     return Response({"status": "ok", "service": "orders"})
+
+
+@extend_schema(exclude=True)
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+def start_fulfillment(request, order_id):
+    # Realizacja sprawdza CSRF przed przekazaniem tokenu pracownika w nagłówku.
+    if request.user.role not in PRODUCTION_WRITE_ROLES:
+        raise PermissionDenied("Ta rola nie może rozpocząć produkcji.")
+    start_production(order_id)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MealViewSet(viewsets.ReadOnlyModelViewSet):
@@ -117,7 +131,18 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             }
         )
 
-    @extend_schema(request=None, responses=OrderSerializer)
+    @extend_schema(
+        request=None,
+        responses={
+            200: OrderSerializer,
+            409: OpenApiResponse(
+                response=inline_serializer(
+                    "CancellationConflict", {"detail": serializers.CharField()}
+                ),
+                description="Produkcja tego zamówienia już się rozpoczęła.",
+            ),
+        },
+    )
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         if request.user.role != request.user.Role.CUSTOMER:

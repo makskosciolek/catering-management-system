@@ -232,6 +232,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CancellationConflict: {
+            detail: string;
+        };
         /**
          * @description * `main` - Danie główne
          *     * `soup` - Zupa
@@ -311,6 +314,8 @@ export interface components {
             /** Uwagi */
             readonly note: string;
             readonly status: components["schemas"]["StatusEnum"];
+            /** @description Czy właściciel może teraz anulować zamówienie. */
+            readonly can_cancel: boolean;
             /** Format: decimal */
             readonly total: string;
             /** Format: date-time */
@@ -395,10 +400,13 @@ export interface components {
          * @description * `submitted` - Oczekuje na magazyn
          *     * `stock_reserved` - Składniki zarezerwowane
          *     * `stock_shortage` - Brak składników lub receptury
+         *     * `preparing` - W przygotowaniu
+         *     * `prepared` - Przygotowane
+         *     * `packed` - Spakowane
          *     * `cancelled` - Anulowane
          * @enum {string}
          */
-        StatusEnum: "submitted" | "stock_reserved" | "stock_shortage" | "cancelled";
+        StatusEnum: "submitted" | "stock_reserved" | "stock_shortage" | "preparing" | "prepared" | "packed" | "cancelled";
         User: {
             /** Format: uuid */
             readonly id: string;
@@ -742,6 +750,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Order"];
+                };
+            };
+            /** @description Produkcja tego zamówienia już się rozpoczęła. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancellationConflict"];
                 };
             };
         };

@@ -124,6 +124,9 @@ const orderStatus: Record<Order['status'], { label: string; tone: StatusTone }> 
   submitted: { label: 'Oczekuje na magazyn', tone: 'pending' },
   stock_reserved: { label: 'Składniki zarezerwowane', tone: 'ok' },
   stock_shortage: { label: 'Brak składników lub receptury', tone: 'warning' },
+  preparing: { label: 'W przygotowaniu', tone: 'pending' },
+  prepared: { label: 'Przygotowane', tone: 'ok' },
+  packed: { label: 'Spakowane', tone: 'ok' },
   cancelled: { label: 'Anulowane', tone: 'neutral' },
 }
 

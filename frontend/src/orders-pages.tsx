@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeferredValue, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
-import { api, deliveryWindowKey } from './api/client'
+import { api } from './api/client'
 import { dateLabel, money, orderCode } from './format'
 import { isManagement, orderDetailKey, ordersKey, useSession } from './session'
 import { ErrorBox, Icon, Loading, PageControls, StatusBadge } from './ui'
@@ -188,12 +188,6 @@ export function OrderDetailPage() {
     queryFn: () => api.order(id),
     refetchInterval: 2000,
   })
-  const delivery = useQuery({
-    queryKey: deliveryWindowKey,
-    queryFn: api.deliveryWindow,
-    enabled: user?.role === 'customer',
-    refetchInterval: 60_000,
-  })
   const cancel = useMutation({
     mutationFn: () => api.cancelOrder(id),
     onSuccess: (updated) => {
@@ -233,20 +227,17 @@ export function OrderDetailPage() {
         </div>
         <StatusBadge status={data.status} />
       </div>
-      {user?.role === 'customer' &&
-        data.status !== 'cancelled' &&
-        delivery.data &&
-        data.delivery_date >= delivery.data.earliest_delivery_date && (
-          <button
-            className={styles.secondaryButton}
-            disabled={cancel.isPending}
-            onClick={() => {
-              if (window.confirm('Czy anulować to zamówienie?')) cancel.mutate()
-            }}
-          >
-            Anuluj zamówienie
-          </button>
-        )}
+      {user?.role === 'customer' && data.can_cancel && (
+        <button
+          className={styles.secondaryButton}
+          disabled={cancel.isPending}
+          onClick={() => {
+            if (window.confirm('Czy anulować to zamówienie?')) cancel.mutate()
+          }}
+        >
+          Anuluj zamówienie
+        </button>
+      )}
       {cancel.error && <ErrorBox error={cancel.error} />}
       <div className={styles.detailGrid}>
         <div className={styles.detailCard}>

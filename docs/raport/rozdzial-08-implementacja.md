@@ -15,8 +15,9 @@ zwalniają wtedy składniki.
 
 W etapie 22 uruchomiono serwis Realizacji z własną bazą PostgreSQL i procesem
 zdarzeń. Zamówienia tworzą konta demonstracyjne kuchni i kierowcy. Realizacja
-sprawdza aktualną rolę przez API Zamówień. Listę kuchni, przydział i ekran
-kierowcy przewidziano w etapach 23–25.
+sprawdza aktualną rolę przez API Zamówień. W etapie 23 dodano listę kuchni
+w API, podsumowanie porcji i zmiany stanu produkcji. Przydział i widoki
+pracowników przewidziano w etapach 24 i 25.
 
 Panel Magazyn pokazuje stan fizyczny, zarezerwowany i dostępny oraz progi
 minimum. Magazynier i administrator dodają składniki, rejestrują dostawy,
@@ -31,7 +32,7 @@ przyjęć, receptury i wyniki rezerwacji.
 | Menu i zamówienia | `backend/services/orders/src/cateringhub_orders/sales/` | Modele `Meal`, `Order`, `OrderItem`, `OutboxEvent`, walidacja i transakcyjny zapis |
 | Proces zdarzeń | `cateringhub_core/messaging.py`, `cateringhub_core/worker.py` oraz polecenie `publish_events` w każdym serwisie | Publikacja z potwierdzeniem brokera, odbiór i kontrolowane ponowienie |
 | Składniki i rezerwacje | `backend/services/inventory/src/cateringhub_inventory/stock/` | Przyjęcia dostaw, receptury, stan dostępny, rezerwacje i rozliczenie zapasu |
-| Realizacja | `backend/services/fulfillment/` | API, osobna baza, odbiór anulowań i zdarzeń gotowości, weryfikacja sesji |
+| Realizacja | `backend/services/fulfillment/` | API produkcji, osobna baza, weryfikacja sesji i obsługa zdarzeń |
 | Portal i panel pracowników | `frontend/src/` | Menu, koszyk, konto, zamówienia, stany i formularze magazynowe |
 | Kontrakty API | [Zamówienia](../api/orders.openapi.yaml), [Zasoby](../api/inventory.openapi.yaml), [Realizacja](../api/fulfillment.openapi.yaml) i `frontend/src/api/` | OpenAPI oraz typy i klienty używane przez widoki |
 | Infrastruktura | `compose.yaml`, `infra/postgres/init.sh`, `scripts/` | Kontenery infrastruktury, inicjalizacja baz, instalacja i uruchamianie procesów |
@@ -67,6 +68,19 @@ i `docs/`. Konsument kolejki `cateringhub.fulfillment.events` zapisuje
 zdarzenie i stan zamówienia w jednej transakcji. Identyfikator zdarzenia
 chroni przed podwójnym przetworzeniem, a zapis anulowania blokuje
 przywrócenie zamówienia przez opóźnione zdarzenie gotowości.
+
+API `production/` i `production/summary/` wymaga daty dostawy. Lista ma
+strony po 20 zamówień, a sumy porcji według dań obejmują cały wybrany dzień.
+Anulowania znikają z listy i sum. Magazynier ma odczyt, kuchnia, menedżer
+i administrator mogą także zmieniać stan produkcji.
+
+Rozpoczęcie produkcji i anulowanie konkurują o blokadę tego samego
+zamówienia. Realizacja przekazuje do wewnętrznego API Zamówień token
+zalogowanego pracownika, którego rola jest sprawdzana ponownie. Kod `202`
+potwierdza przyjęcie operacji. Nowy stan pojawia się na liście po odebraniu
+zdarzenia rozpoczęcia z RabbitMQ.
+Przygotowanie i spakowanie zapisują zdarzenia razem z nowym stanem.
+Zasoby rozliczają rezerwację po otrzymaniu `order.prepared`.
 
 Wiadomość `order.submitted` ma pola `event_id`, `event_type`, `version`,
 `occurred_at` i `order_id`. Dane dla odbiorcy (`payload`) zawierają datę
